@@ -1,0 +1,8 @@
+# Global fallback
+* @HOKMA-TECH/hokma-maintainers
+
+# Security-sensitive areas
+supabase/ @HOKMA-TECH/hokma-maintainers
+src-tauri/ @HOKMA-TECH/hokma-maintainers
+docs/security/ @HOKMA-TECH/hokma-maintainers
+.github/workflows/ @HOKMA-TECH/hokma-maintainers
