@@ -42,6 +42,11 @@ async function loadMemberships(): Promise<Membership[]> {
   }))
 }
 
+function hasVerifiedTotpFactor(user: User | null): boolean {
+  const factors = (user as { factors?: Array<{ factor_type?: string; status?: string }> } | null)?.factors ?? []
+  return factors.some((factor) => factor.factor_type === 'totp' && factor.status === 'verified')
+}
+
 async function checkAuthRateLimit(identifier: string, action: 'sign_in' | 'sign_up' | 'password_recovery'): Promise<{ allowed: boolean; retryAfterSeconds: number }> {
   const { data } = await supabase.rpc('rpc_auth_rate_limit_check', {
     p_identifier: identifier,
@@ -203,7 +208,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const needsTenantSelection = !!user && memberships.filter((m) => m.status === 'active').length > 1 && !activeTenant
   const roleMfaRequired = !!user && ['master_admin', 'administrador', 'diretor', 'gerente'].includes(activeMembership?.role ?? '')
   const capabilityMfaRequired = getCapabilitiesForRole(activeMembership?.role).some((cap) => CRITICAL_MFA_CAPABILITIES.has(cap))
-  const isMfaRequired = roleMfaRequired || capabilityMfaRequired
+  const isMfaRequired = (roleMfaRequired || capabilityMfaRequired) && !hasVerifiedTotpFactor(user)
 
   const value = useMemo<AuthContextValue>(() => ({
     user,
@@ -233,6 +238,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const challenge = await supabase.auth.mfa.challenge({ factorId })
       if (challenge.error) return { error: 'Falha no desafio MFA.' }
       const verify = await supabase.auth.mfa.verify({ factorId, challengeId: challenge.data.id, code })
+      if (!verify.error) await refreshAuthState()
       return { error: verify.error ? 'Codigo MFA invalido.' : null }
     },
     disableTotp: async (factorId: string) => {
