@@ -157,9 +157,24 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (input.mode === 'create_tenant') {
       const name = (input.tenantName ?? '').trim()
       if (!name) return { error: 'Informe o nome da imobiliaria para criar o tenant.' }
-      const slug = name.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 48)
-      const { error: tenantError } = await supabase.rpc('rpc_create_tenant', { p_slug: slug || `tenant-${Date.now()}`, p_legal_name: name })
-      if (tenantError) return { error: 'Conta criada, mas nao foi possivel criar a imobiliaria automaticamente.' }
+      const baseSlug = name.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 40)
+      const slugCandidates = [
+        baseSlug || `tenant-${Date.now()}`,
+        `${baseSlug || 'tenant'}-${Date.now().toString().slice(-4)}`,
+        `${baseSlug || 'tenant'}-${Math.random().toString(36).slice(2, 6)}`,
+      ]
+
+      let tenantError: { message: string } | null = null
+      for (const candidate of slugCandidates) {
+        const { error } = await supabase.rpc('rpc_create_tenant', { p_slug: candidate, p_legal_name: name })
+        if (!error) {
+          tenantError = null
+          break
+        }
+        tenantError = error
+      }
+
+      if (tenantError) return { error: `Conta criada, mas falhou ao criar imobiliaria: ${tenantError.message}` }
       return { error: null }
     }
 
@@ -175,7 +190,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       p_join_code: joinCode,
       p_role: input.requestedRole ?? 'corretor',
     })
-    if (joinError) return { error: 'Conta criada, mas o codigo de convite e invalido ou expirou.' }
+    if (joinError) return { error: `Conta criada, mas falhou ao entrar na imobiliaria: ${joinError.message}` }
     return { error: null }
   }
 
