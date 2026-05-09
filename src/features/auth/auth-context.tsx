@@ -110,7 +110,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     const guardJson = (await guard.json().catch(() => ({}))) as { error?: string }
     if (!guard.ok) {
-      return { error: guardJson.error ?? 'Falha na verificacao anti-bot.' }
+      return { error: guardJson.error ?? 'Falha na verificacao anti-bot (verification-failed).' }
     }
 
     const { error } = await supabase.auth.signInWithPassword({ email, password })
