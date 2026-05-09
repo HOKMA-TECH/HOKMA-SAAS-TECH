@@ -291,10 +291,11 @@ export default function CalculadoraPage() {
                         border: '1px solid hsl(var(--border))',
                         borderRadius: '8px',
                       }}
-                      formatter={(value: number, name: string) => [
-                        `R$ ${value.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`,
-                        name === 'parcela' ? 'Parcela' : 'Saldo'
-                      ]}
+                      formatter={(value, name) => {
+                        const numericValue = typeof value === 'number' ? value : Number(value ?? 0)
+                        const label = name === 'parcela' ? 'Parcela' : 'Saldo'
+                        return [`R$ ${numericValue.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`, label]
+                      }}
                     />
                     <Area
                       type="monotone"

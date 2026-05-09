@@ -136,8 +136,7 @@ export async function POST(req: NextRequest) {
   }
 
   if (mode === 'join_tenant' && createdUser.user) {
-    const allowedRoles = new Set(['corretor', 'coordenador', 'gerente', 'diretor', 'administrador'])
-    const role = allowedRoles.has(requestedRole) ? requestedRole : 'corretor'
+    const role = 'corretor'
     const sha256Hash = createHash('sha256').update(joinCode).digest('hex')
     const md5Hash = createHash('md5').update(joinCode).digest('hex')
 
@@ -156,9 +155,9 @@ export async function POST(req: NextRequest) {
       tenant_id: joinCodeLookup.data.tenant_id,
       user_id: createdUser.user.id,
       role,
-      status: 'active',
+      status: 'pending',
       requested_by: createdUser.user.id,
-      approved_by: createdUser.user.id,
+      approved_by: null,
     })
 
     if (membershipInsert.error) {

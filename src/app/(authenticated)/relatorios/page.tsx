@@ -222,7 +222,10 @@ export default function RelatoriosPage() {
                             border: '1px solid hsl(var(--border))',
                             borderRadius: '8px',
                           }}
-                          formatter={(value: number) => [`R$ ${(value / 1000000).toFixed(2)}M`, 'Receita']}
+                          formatter={(value) => {
+                            const numericValue = typeof value === 'number' ? value : Number(value ?? 0)
+                            return [`R$ ${(numericValue / 1000000).toFixed(2)}M`, 'Receita']
+                          }}
                         />
                         <Area
                           type="monotone"
