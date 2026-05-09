@@ -50,7 +50,7 @@ export async function POST(req: NextRequest) {
       p_success: false,
       p_details: { source: 'api_signup', reason: 'captcha_failed', captcha_code: captcha.code ?? null },
     })
-    return NextResponse.json({ error: 'Falha na verificacao anti-bot.' }, { status: 400 })
+    return NextResponse.json({ error: `Falha na verificacao anti-bot (${captcha.code ?? 'verification-failed'}).` }, { status: 400 })
   }
 
   const adminClient = createClient(supabaseUrl, serviceRoleKey, { auth: { persistSession: false, autoRefreshToken: false } })
