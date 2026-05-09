@@ -14,6 +14,11 @@ export function AuthenticatedGuard({ children }: { children: React.ReactNode }) 
   const capabilityMap: Record<Capability, boolean> = useMemo(() => {
     const roleCaps = getCapabilitiesForRole(activeRole)
     return {
+      'leads.read': roleCaps.includes('leads.read'),
+      'leads.create': roleCaps.includes('leads.create'),
+      'leads.update': roleCaps.includes('leads.update'),
+      'leads.assign': roleCaps.includes('leads.assign'),
+      'leads.convert': roleCaps.includes('leads.convert'),
       'clientes.read': roleCaps.includes('clientes.read'),
       'clientes.create': roleCaps.includes('clientes.create'),
       'clientes.update': roleCaps.includes('clientes.update'),
@@ -40,6 +45,9 @@ export function AuthenticatedGuard({ children }: { children: React.ReactNode }) 
       'usuarios.approve': roleCaps.includes('usuarios.approve'),
       'usuarios.suspend': roleCaps.includes('usuarios.suspend'),
       'usuarios.change_role': roleCaps.includes('usuarios.change_role'),
+      'crm.notes.create': roleCaps.includes('crm.notes.create'),
+      'crm.notes.read': roleCaps.includes('crm.notes.read'),
+      'crm.stage.move': roleCaps.includes('crm.stage.move'),
       'tenant.settings.manage': roleCaps.includes('tenant.settings.manage'),
       'tenant.audit.read': roleCaps.includes('tenant.audit.read'),
       'platform.tenants.manage': roleCaps.includes('platform.tenants.manage'),
