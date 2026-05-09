@@ -30,6 +30,12 @@ export async function updateMembershipStatus(membershipId: string, status: Extra
 
 export async function generateTenantJoinCode(tenantId: string): Promise<{ code: string | null; error: string | null }> {
   const { data, error } = await supabase.rpc('rpc_generate_join_code', { p_tenant_id: tenantId })
-  if (error) return { code: null, error: `Nao foi possivel gerar join code: ${error.message}` }
+  if (error) return { code: null, error: `Nao foi possivel obter join code: ${error.message}` }
+  return { code: typeof data === 'string' ? data : null, error: null }
+}
+
+export async function rotateTenantJoinCode(tenantId: string): Promise<{ code: string | null; error: string | null }> {
+  const { data, error } = await supabase.rpc('rpc_rotate_join_code', { p_tenant_id: tenantId })
+  if (error) return { code: null, error: `Nao foi possivel rotacionar join code: ${error.message}` }
   return { code: typeof data === 'string' ? data : null, error: null }
 }
