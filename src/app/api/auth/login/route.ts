@@ -16,7 +16,7 @@ export async function POST(req: NextRequest) {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
   const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 
-  if (!email || !token || !supabaseUrl || !supabaseAnonKey) {
+  if (!email || !supabaseUrl || !supabaseAnonKey) {
     return NextResponse.json({ error: 'Requisicao invalida.' }, { status: 400 })
   }
 
@@ -37,6 +37,21 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: `Muitas tentativas. Aguarde ${rateLimit.retryAfterSeconds}s e tente novamente.`, retryAfterSeconds: rateLimit.retryAfterSeconds }, { status: 429 })
   }
 
+  if (typeof body.success === 'boolean') {
+    await supabase.rpc('rpc_record_auth_attempt_v2', {
+      p_identifier: email,
+      p_ip: ip,
+      p_action: 'sign_in',
+      p_success: body.success,
+      p_details: { source: 'api_login', reason: body.success ? 'auth_success' : 'auth_failed' },
+    })
+    return NextResponse.json({ ok: true })
+  }
+
+  if (!token) {
+    return NextResponse.json({ error: 'Falha na verificacao anti-bot (missing-input-response).' }, { status: 400 })
+  }
+
   const captcha = await verifyTurnstileToken({ token, remoteIp: ip === 'unknown' ? null : ip })
   if (!captcha.ok) {
     await supabase.rpc('rpc_record_auth_attempt_v2', {
@@ -46,17 +61,7 @@ export async function POST(req: NextRequest) {
       p_success: false,
       p_details: { source: 'api_login', reason: 'captcha_failed', captcha_code: captcha.code ?? null },
     })
-    return NextResponse.json({ error: 'Falha na verificacao anti-bot.' }, { status: 400 })
-  }
-
-  if (typeof body.success === 'boolean') {
-    await supabase.rpc('rpc_record_auth_attempt_v2', {
-      p_identifier: email,
-      p_ip: ip,
-      p_action: 'sign_in',
-      p_success: body.success,
-      p_details: { source: 'api_login', reason: body.success ? 'auth_success' : 'auth_failed' },
-    })
+    return NextResponse.json({ error: `Falha na verificacao anti-bot (${captcha.code ?? 'verification-failed'}).` }, { status: 400 })
   }
 
   return NextResponse.json({ ok: true })
