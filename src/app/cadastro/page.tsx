@@ -25,7 +25,9 @@ export default function CadastroPage() {
     senha: '',
     confirmarSenha: '',
     nomeImobiliaria: '',
+    codigoConvite: '',
   })
+  const [signupMode, setSignupMode] = useState<'create_tenant' | 'join_tenant'>('create_tenant')
   const [showPassword, setShowPassword] = useState(false)
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
@@ -61,7 +63,15 @@ export default function CadastroPage() {
 
     setIsLoading(true)
 
-    const result = await signUp(formData.email, formData.senha, formData.nome)
+    const result = await signUp({
+      email: formData.email,
+      password: formData.senha,
+      displayName: formData.nome,
+      mode: signupMode,
+      tenantName: formData.nomeImobiliaria,
+      joinCode: formData.codigoConvite,
+      requestedRole: 'corretor',
+    })
     if (result.error) {
       setError(result.error)
       setCaptchaToken(null)
@@ -199,6 +209,14 @@ export default function CadastroPage() {
                 </div>
 
                 <div className="space-y-2">
+                  <Label>Modo de entrada</Label>
+                  <div className="grid grid-cols-2 gap-2">
+                    <Button type="button" variant={signupMode === 'create_tenant' ? 'default' : 'outline'} onClick={() => setSignupMode('create_tenant')}>Criar imobiliaria</Button>
+                    <Button type="button" variant={signupMode === 'join_tenant' ? 'default' : 'outline'} onClick={() => setSignupMode('join_tenant')}>Entrar com codigo</Button>
+                  </div>
+                </div>
+
+                <div className="space-y-2">
                   <Label htmlFor="nomeImobiliaria">Nome da imobiliária</Label>
                   <div className="relative">
                     <Building2 className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -211,10 +229,27 @@ export default function CadastroPage() {
                       onChange={handleChange}
                       className="h-11 pl-10"
                       disabled={isLoading}
-                      required
+                      required={signupMode === 'create_tenant'}
                     />
                   </div>
                 </div>
+
+                {signupMode === 'join_tenant' ? (
+                  <div className="space-y-2">
+                    <Label htmlFor="codigoConvite">Codigo de convite</Label>
+                    <Input
+                      id="codigoConvite"
+                      name="codigoConvite"
+                      type="text"
+                      placeholder="Ex: A1B2C3D4E5"
+                      value={formData.codigoConvite}
+                      onChange={handleChange}
+                      className="h-11 uppercase"
+                      disabled={isLoading}
+                      required
+                    />
+                  </div>
+                ) : null}
 
                 <div className="space-y-2">
                   <Label htmlFor="senha">Senha</Label>

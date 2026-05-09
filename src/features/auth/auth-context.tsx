@@ -8,7 +8,7 @@ import { CRITICAL_MFA_CAPABILITIES, getCapabilitiesForRole } from '@/features/au
 
 type AuthContextValue = AuthState & {
   signIn: (email: string, password: string, turnstileToken: string) => Promise<{ error: string | null }>
-  signUp: (email: string, password: string, displayName: string) => Promise<{ error: string | null }>
+  signUp: (input: { email: string; password: string; displayName: string; mode: 'create_tenant' | 'join_tenant'; tenantName?: string; joinCode?: string; requestedRole?: string }) => Promise<{ error: string | null }>
   signOut: () => Promise<void>
   sendPasswordRecoveryEmail: (email: string) => Promise<{ error: string | null }>
   updatePassword: (password: string) => Promise<{ error: string | null }>
@@ -125,15 +125,45 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return { error: error ? 'Falha ao autenticar. Verifique suas credenciais.' : null }
   }
 
-  const signUp = async (email: string, password: string, displayName: string) => {
-    const rateLimit = await checkAuthRateLimit(email, 'sign_up')
+  const signUp = async (input: { email: string; password: string; displayName: string; mode: 'create_tenant' | 'join_tenant'; tenantName?: string; joinCode?: string; requestedRole?: string }) => {
+    const rateLimit = await checkAuthRateLimit(input.email, 'sign_up')
     if (!rateLimit.allowed) {
       return { error: `Muitas tentativas. Aguarde ${rateLimit.retryAfterSeconds}s e tente novamente.` }
     }
 
-    const { error } = await supabase.auth.signUp({ email, password, options: { data: { display_name: displayName } } })
-    await recordAuthAttempt(email, 'sign_up', !error, { source: 'app_auth' })
-    return { error: error ? 'Nao foi possivel criar a conta com os dados informados.' : null }
+    const { data, error } = await supabase.auth.signUp({ email: input.email, password: input.password, options: { data: { display_name: input.displayName } } })
+    await recordAuthAttempt(input.email, 'sign_up', !error, { source: 'app_auth' })
+    if (error) {
+      return { error: error.message || 'Nao foi possivel criar a conta com os dados informados.' }
+    }
+
+    if (!data.session) {
+      return { error: 'Conta criada, mas o login depende de confirmacao de e-mail antes do onboarding do tenant.' }
+    }
+
+    if (input.mode === 'create_tenant') {
+      const name = (input.tenantName ?? '').trim()
+      if (!name) return { error: 'Informe o nome da imobiliaria para criar o tenant.' }
+      const slug = name.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 48)
+      const { error: tenantError } = await supabase.rpc('rpc_create_tenant', { p_slug: slug || `tenant-${Date.now()}`, p_legal_name: name })
+      if (tenantError) return { error: 'Conta criada, mas nao foi possivel criar a imobiliaria automaticamente.' }
+      return { error: null }
+    }
+
+    const joinCode = (input.joinCode ?? '').trim().toUpperCase()
+    if (!joinCode) return { error: 'Informe o codigo de convite da imobiliaria.' }
+    const tenantName = (input.tenantName ?? '').trim()
+    if (!tenantName) return { error: 'Informe o nome da imobiliaria para solicitar acesso.' }
+    const { data: tenant } = await supabase.from('tenants').select('id').eq('legal_name', tenantName).maybeSingle()
+    const tenantId = tenant?.id
+    if (!tenantId) return { error: 'Nenhum tenant encontrado para solicitar acesso com codigo.' }
+    const { error: joinError } = await supabase.rpc('rpc_request_tenant_access_with_join_code', {
+      p_tenant_id: tenantId,
+      p_join_code: joinCode,
+      p_role: input.requestedRole ?? 'corretor',
+    })
+    if (joinError) return { error: 'Conta criada, mas o codigo de convite e invalido ou expirou.' }
+    return { error: null }
   }
 
   const signOut = async () => {
