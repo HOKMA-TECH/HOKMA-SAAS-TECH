@@ -26,26 +26,49 @@ import {
   ChevronLeft,
   ChevronRight,
 } from 'lucide-react'
+import { useCan } from '@/features/auth/authorization'
+import type { Capability } from '@/features/auth/capabilities'
+import type { AccessContext } from '@/features/auth/route-capabilities'
 
-const navigation = [
+const navigation: Array<{ name: string; href: string; icon: any; capability?: Capability; context?: AccessContext }> = [
   { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
-  { name: 'Clientes', href: '/clientes', icon: Users },
-  { name: 'Agenda', href: '/agenda', icon: Calendar },
-  { name: 'Chat', href: '/chat', icon: MessageSquare },
-  { name: 'Empreendimentos', href: '/empreendimentos', icon: Building2 },
-  { name: 'Tarefas', href: '/tarefas', icon: CheckSquare },
-  { name: 'Portais', href: '/portais', icon: Globe },
+  { name: 'Clientes', href: '/clientes', icon: Users, capability: 'clientes.read', context: 'tenant' },
+  { name: 'Agenda', href: '/agenda', icon: Calendar, capability: 'agenda.read', context: 'tenant' },
+  { name: 'Chat', href: '/chat', icon: MessageSquare, capability: 'documentos.read', context: 'tenant' },
+  { name: 'Empreendimentos', href: '/empreendimentos', icon: Building2, capability: 'clientes.read', context: 'tenant' },
+  { name: 'Tarefas', href: '/tarefas', icon: CheckSquare, capability: 'tarefas.read' },
+  { name: 'Portais', href: '/portais', icon: Globe, capability: 'clientes.read', context: 'tenant' },
   { name: 'Conversor PDF', href: '/conversor-pdf', icon: FileText },
-  { name: 'Relatórios', href: '/relatorios', icon: BarChart3 },
+  { name: 'Relatórios', href: '/relatorios', icon: BarChart3, capability: 'relatorios.read', context: 'tenant' },
   { name: 'Apuração de Renda', href: '/apuracao-renda', icon: PiggyBank },
   { name: 'Calculadora', href: '/calculadora', icon: Calculator },
-  { name: 'Painel Admin', href: '/admin', icon: Shield },
-  { name: 'Configurações', href: '/configuracoes', icon: Settings },
+  { name: 'Painel Admin', href: '/admin', icon: Shield, capability: 'tenant.audit.read', context: 'tenant' },
+  { name: 'Configurações', href: '/configuracoes', icon: Settings, capability: 'tenant.settings.manage', context: 'tenant' },
+  { name: 'Platform', href: '/platform', icon: Shield, capability: 'platform.tenants.manage', context: 'platform' },
 ]
 
 export function Sidebar() {
   const pathname = usePathname()
   const { sidebarCollapsed, toggleSidebar } = useUIStore()
+  const canReadClients = useCan('clientes.read')
+  const canReadAgenda = useCan('agenda.read')
+  const canReadTasks = useCan('tarefas.read')
+  const canReadReports = useCan('relatorios.read')
+  const canReadTenantAudit = useCan('tenant.audit.read')
+  const canManageSettings = useCan('tenant.settings.manage')
+  const canReadDocs = useCan('documentos.read')
+  const canPlatformManage = useCan('platform.tenants.manage', { context: 'platform' })
+
+  const capabilityMap: Partial<Record<Capability, boolean>> = {
+    'clientes.read': canReadClients,
+    'agenda.read': canReadAgenda,
+    'tarefas.read': canReadTasks,
+    'relatorios.read': canReadReports,
+    'tenant.audit.read': canReadTenantAudit,
+    'tenant.settings.manage': canManageSettings,
+    'documentos.read': canReadDocs,
+    'platform.tenants.manage': canPlatformManage,
+  }
 
   return (
     <TooltipProvider delayDuration={0}>
@@ -77,7 +100,10 @@ export function Sidebar() {
         {/* Navigation */}
         <ScrollArea className="flex-1 py-4">
           <nav className="flex flex-col gap-1 px-3">
-            {navigation.map((item) => {
+            {navigation.filter((item) => {
+              if (!item.capability) return true
+              return capabilityMap[item.capability] ?? false
+            }).map((item) => {
               const isActive = pathname === item.href || pathname?.startsWith(`${item.href}/`)
               const Icon = item.icon
 
