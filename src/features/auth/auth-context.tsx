@@ -138,6 +138,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         email: input.email,
         password: input.password,
         displayName: input.displayName,
+        mode: input.mode,
+        tenantName: input.tenantName,
+        joinCode: input.joinCode,
+        requestedRole: input.requestedRole,
         turnstileToken: input.turnstileToken,
       }),
     })
@@ -154,43 +158,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       return { error: 'Conta criada, mas nao foi possivel iniciar sessao automaticamente.' }
     }
 
-    if (input.mode === 'create_tenant') {
-      const name = (input.tenantName ?? '').trim()
-      if (!name) return { error: 'Informe o nome da imobiliaria para criar o tenant.' }
-      const baseSlug = name.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 40)
-      const slugCandidates = [
-        baseSlug || `tenant-${Date.now()}`,
-        `${baseSlug || 'tenant'}-${Date.now().toString().slice(-4)}`,
-        `${baseSlug || 'tenant'}-${Math.random().toString(36).slice(2, 6)}`,
-      ]
+    if (input.mode === 'create_tenant') return { error: null }
 
-      let tenantError: { message: string } | null = null
-      for (const candidate of slugCandidates) {
-        const { error } = await supabase.rpc('rpc_create_tenant', { p_slug: candidate, p_legal_name: name })
-        if (!error) {
-          tenantError = null
-          break
-        }
-        tenantError = error
-      }
-
-      if (tenantError) return { error: `Conta criada, mas falhou ao criar imobiliaria: ${tenantError.message}` }
-      return { error: null }
-    }
-
-    const joinCode = (input.joinCode ?? '').trim().toUpperCase()
-    if (!joinCode) return { error: 'Informe o codigo de convite da imobiliaria.' }
-    const tenantName = (input.tenantName ?? '').trim()
-    if (!tenantName) return { error: 'Informe o nome da imobiliaria para solicitar acesso.' }
-    const { data: tenant } = await supabase.from('tenants').select('id').eq('legal_name', tenantName).maybeSingle()
-    const tenantId = tenant?.id
-    if (!tenantId) return { error: 'Nenhum tenant encontrado para solicitar acesso com codigo.' }
-    const { error: joinError } = await supabase.rpc('rpc_request_tenant_access_with_join_code', {
-      p_tenant_id: tenantId,
-      p_join_code: joinCode,
-      p_role: input.requestedRole ?? 'corretor',
-    })
-    if (joinError) return { error: `Conta criada, mas falhou ao entrar na imobiliaria: ${joinError.message}` }
     return { error: null }
   }
 
