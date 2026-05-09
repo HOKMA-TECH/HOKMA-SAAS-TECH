@@ -79,7 +79,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const [p, m] = await Promise.all([loadProfile(data.session.user), loadMemberships()])
       setProfile(p)
       setMemberships(m)
-      setActiveTenant(null)
+      const activeMemberships = m.filter((membership) => membership.status === 'active')
+      setActiveTenant((current) => {
+        if (current && activeMemberships.some((membership) => membership.tenant_id === current)) return current
+        if (activeMemberships.length === 1) return activeMemberships[0].tenant_id
+        return null
+      })
     } else {
       setProfile(null)
       setMemberships([])
