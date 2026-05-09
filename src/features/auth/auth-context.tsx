@@ -121,8 +121,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       body: JSON.stringify({ email, turnstileToken, success: !error }),
     }).catch(() => null)
 
-    await recordAuthAttempt(email, 'sign_in', !error, { source: 'app_auth' })
-    return { error: error ? 'Falha ao autenticar. Verifique suas credenciais.' : null }
+    await recordAuthAttempt(email, 'sign_in', !error, {
+      source: 'app_auth',
+      reason: error?.message ?? null,
+      code: (error as { code?: string } | null)?.code ?? null,
+    })
+    if (!error) return { error: null }
+
+    const code = (error as { code?: string } | null)?.code ?? null
+    if (code === 'email_not_confirmed') return { error: 'Conta criada, mas o e-mail ainda nao foi confirmado.' }
+    if (code === 'invalid_credentials') return { error: 'Falha ao autenticar (invalid_credentials). Verifique e-mail e senha.' }
+    return { error: `Falha ao autenticar (${code ?? 'unknown_error'}): ${error.message}` }
   }
 
   const signUp = async (input: { email: string; password: string; displayName: string; mode: 'create_tenant' | 'join_tenant'; tenantName?: string; joinCode?: string; requestedRole?: string; turnstileToken: string }) => {
@@ -153,9 +162,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
 
     const { data: signInData, error } = await supabase.auth.signInWithPassword({ email: input.email, password: input.password })
-    await recordAuthAttempt(input.email, 'sign_up', !error, { source: 'app_auth' })
+    await recordAuthAttempt(input.email, 'sign_up', !error, {
+      source: 'app_auth',
+      reason: error?.message ?? null,
+      code: (error as { code?: string } | null)?.code ?? null,
+    })
     if (error || !signInData.session) {
-      return { error: 'Conta criada, mas nao foi possivel iniciar sessao automaticamente.' }
+      const code = (error as { code?: string } | null)?.code ?? null
+      return { error: `Conta criada, mas nao foi possivel iniciar sessao automaticamente (${code ?? 'unknown_error'}).` }
     }
 
     if (input.mode === 'create_tenant') return { error: null }
