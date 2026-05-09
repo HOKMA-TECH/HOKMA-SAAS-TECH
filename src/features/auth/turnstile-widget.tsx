@@ -4,9 +4,10 @@ import { useEffect, useRef } from 'react'
 
 type TurnstileWidgetProps = {
   onTokenChange: (token: string | null) => void
+  refreshSignal?: number
 }
 
-export function TurnstileWidget({ onTokenChange }: TurnstileWidgetProps) {
+export function TurnstileWidget({ onTokenChange, refreshSignal = 0 }: TurnstileWidgetProps) {
   const siteKey = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY
   const containerRef = useRef<HTMLDivElement | null>(null)
   const widgetIdRef = useRef<string | null>(null)
@@ -61,6 +62,17 @@ export function TurnstileWidget({ onTokenChange }: TurnstileWidgetProps) {
       }
     }
   }, [siteKey])
+
+  useEffect(() => {
+    const w = window as Window & {
+      turnstile?: {
+        reset: (id?: string) => void
+      }
+    }
+    if (!widgetIdRef.current || !w.turnstile) return
+    w.turnstile.reset(widgetIdRef.current)
+    onTokenChangeRef.current(null)
+  }, [refreshSignal])
 
   return (
     <div className="rounded-lg border border-border bg-muted/30 p-3">

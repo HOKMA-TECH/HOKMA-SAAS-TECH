@@ -11,12 +11,14 @@ export default function RecoverPasswordPage() {
   const { sendPasswordRecoveryEmail } = useAuth()
   const [email, setEmail] = useState('')
   const [captcha, setCaptcha] = useState<string | null>(null)
+  const [captchaRefreshSignal, setCaptchaRefreshSignal] = useState(0)
   const [message, setMessage] = useState('')
 
   const onSubmit = async (e: FormEvent) => {
     e.preventDefault()
     if (!resolveCaptchaToken(captcha)) {
       setMessage('Conclua a verificacao anti-bot.')
+      setCaptchaRefreshSignal((v) => v + 1)
       return
     }
     await sendPasswordRecoveryEmail(email)
@@ -27,7 +29,7 @@ export default function RecoverPasswordPage() {
     <form onSubmit={onSubmit} className="mx-auto max-w-md space-y-4 p-8">
       <h1 className="text-2xl font-semibold">Recuperar senha</h1>
       <Input type="email" placeholder="seu@email.com" value={email} onChange={(e) => setEmail(e.target.value)} />
-      <TurnstileWidget onTokenChange={setCaptcha} />
+      <TurnstileWidget onTokenChange={setCaptcha} refreshSignal={captchaRefreshSignal} />
       <Button type="submit" className="w-full">Enviar</Button>
       {message ? <p className="text-sm text-muted-foreground">{message}</p> : null}
     </form>

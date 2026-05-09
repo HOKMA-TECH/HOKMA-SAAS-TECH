@@ -33,6 +33,7 @@ export default function CadastroPage() {
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState('')
   const [captchaToken, setCaptchaToken] = useState<string | null>(null)
+  const [captchaRefreshSignal, setCaptchaRefreshSignal] = useState(0)
   const [passwordErrors, setPasswordErrors] = useState<string[]>([])
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -58,6 +59,7 @@ export default function CadastroPage() {
     const resolvedCaptchaToken = resolveCaptchaToken(captchaToken)
     if (!resolvedCaptchaToken) {
       setError('Complete a verificacao anti-bot para continuar.')
+      setCaptchaRefreshSignal((v) => v + 1)
       return
     }
 
@@ -76,6 +78,7 @@ export default function CadastroPage() {
     if (result.error) {
       setError(result.error)
       setCaptchaToken(null)
+      setCaptchaRefreshSignal((v) => v + 1)
       setIsLoading(false)
       return
     }
@@ -328,7 +331,7 @@ export default function CadastroPage() {
                   </ul>
                 ) : null}
 
-                <TurnstileWidget onTokenChange={setCaptchaToken} />
+                <TurnstileWidget onTokenChange={setCaptchaToken} refreshSignal={captchaRefreshSignal} />
 
                 <Button 
                   type="submit" 

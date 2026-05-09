@@ -24,6 +24,7 @@ export default function LoginPage() {
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState('')
   const [captchaToken, setCaptchaToken] = useState<string | null>(null)
+  const [captchaRefreshSignal, setCaptchaRefreshSignal] = useState(0)
 
   const handleTokenChange = useCallback((token: string | null) => {
     setCaptchaToken(token)
@@ -39,6 +40,7 @@ export default function LoginPage() {
 
     if (!resolvedCaptchaToken) {
       setError('Complete a verificacao anti-bot para continuar.')
+      setCaptchaRefreshSignal((v) => v + 1)
       setIsLoading(false)
       return
     }
@@ -47,6 +49,7 @@ export default function LoginPage() {
     if (result.error) {
       setError(result.error)
       setCaptchaToken(null)
+      setCaptchaRefreshSignal((v) => v + 1)
       setIsLoading(false)
       return
     }
@@ -197,6 +200,7 @@ export default function LoginPage() {
 
                 <TurnstileWidget
                   onTokenChange={handleTokenChange}
+                  refreshSignal={captchaRefreshSignal}
                 />
 
                 <Button 
