@@ -165,20 +165,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       return { error: signupJson.error ?? 'Nao foi possivel criar a conta com os dados informados.' }
     }
 
-    const { data: signInData, error } = await supabase.auth.signInWithPassword({
-      email: input.email,
-      password: input.password,
-      options: { captchaToken: input.turnstileToken },
-    })
-    await recordAuthAttempt(input.email, 'sign_up', !error, {
-      source: 'app_auth',
-      reason: error?.message ?? null,
-      code: (error as { code?: string } | null)?.code ?? null,
-    })
-    if (error || !signInData.session) {
-      const code = (error as { code?: string } | null)?.code ?? null
-      return { error: `Conta criada, mas nao foi possivel iniciar sessao automaticamente (${code ?? 'unknown_error'}).` }
-    }
+    await recordAuthAttempt(input.email, 'sign_up', true, { source: 'app_auth', reason: 'signup_success' })
 
     if (input.mode === 'create_tenant') return { error: null }
 

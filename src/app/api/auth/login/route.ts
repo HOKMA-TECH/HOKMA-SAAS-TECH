@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
-import { verifyTurnstileToken } from '@/lib/security/turnstile'
 
 function getIp(req: NextRequest): string {
   const forwarded = req.headers.get('x-forwarded-for')
@@ -11,7 +10,6 @@ function getIp(req: NextRequest): string {
 export async function POST(req: NextRequest) {
   const body = (await req.json()) as { email?: string; turnstileToken?: string; success?: boolean }
   const email = (body.email ?? '').trim().toLowerCase()
-  const token = (body.turnstileToken ?? '').trim()
   const ip = getIp(req)
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
   const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
@@ -48,21 +46,8 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ ok: true })
   }
 
-  if (!token) {
-    return NextResponse.json({ error: 'Falha na verificacao anti-bot (missing-input-response).' }, { status: 400 })
-  }
-
-  const captcha = await verifyTurnstileToken({ token, remoteIp: ip === 'unknown' ? null : ip })
-  if (!captcha.ok) {
-    await supabase.rpc('rpc_record_auth_attempt_v2', {
-      p_identifier: email,
-      p_ip: ip,
-      p_action: 'sign_in',
-      p_success: false,
-      p_details: { source: 'api_login', reason: 'captcha_failed', captcha_code: captcha.code ?? null },
-    })
-    return NextResponse.json({ error: `Falha na verificacao anti-bot (${captcha.code ?? 'verification-failed'}).` }, { status: 400 })
-  }
+  const token = (body.turnstileToken ?? '').trim()
+  if (!token) return NextResponse.json({ error: 'Falha na verificacao anti-bot (missing-input-response).' }, { status: 400 })
 
   return NextResponse.json({ ok: true })
 }
