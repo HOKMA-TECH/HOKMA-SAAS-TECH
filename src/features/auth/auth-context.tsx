@@ -14,7 +14,7 @@ type AuthContextValue = AuthState & {
   updatePassword: (password: string) => Promise<{ error: string | null }>
   refreshAuthState: () => Promise<void>
   selectActiveTenant: (tenantId: string) => void
-  enrollTotp: () => Promise<{ qr: string | null; secret: string | null; error: string | null }>
+  enrollTotp: () => Promise<{ factorId: string | null; qr: string | null; secret: string | null; error: string | null }>
   verifyTotp: (factorId: string, code: string) => Promise<{ error: string | null }>
   disableTotp: (factorId: string) => Promise<{ error: string | null }>
   retryMfaChallenge: (factorId: string) => Promise<{ challengeId: string | null; error: string | null }>
@@ -226,8 +226,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     selectActiveTenant: setActiveTenant,
     enrollTotp: async () => {
       const { data, error } = await supabase.auth.mfa.enroll({ factorType: 'totp' })
-      if (error) return { qr: null, secret: null, error: 'Falha ao iniciar cadastro MFA.' }
-      return { qr: data.totp.qr_code, secret: data.totp.secret, error: null }
+      if (error) return { factorId: null, qr: null, secret: null, error: `Falha ao iniciar cadastro MFA: ${error.message}` }
+      return { factorId: data.id, qr: data.totp.qr_code, secret: data.totp.secret, error: null }
     },
     verifyTotp: async (factorId: string, code: string) => {
       const challenge = await supabase.auth.mfa.challenge({ factorId })

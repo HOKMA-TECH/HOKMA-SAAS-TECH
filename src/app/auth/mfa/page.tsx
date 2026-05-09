@@ -24,6 +24,7 @@ export default function MfaPage() {
       setIsBusy(false)
       return
     }
+    setFactorId(result.factorId ?? '')
     setQrCode(result.qr)
     setSecret(result.secret)
     setMessage('Cadastro MFA iniciado. Escaneie o QR code e valide o primeiro codigo.')
@@ -61,8 +62,8 @@ export default function MfaPage() {
           </CardHeader>
           <CardContent className="space-y-4">
             <Button onClick={onEnroll} disabled={isBusy}>Iniciar cadastro TOTP</Button>
-            {qrCode ? <div className="rounded-md border border-border p-3 text-xs">QR recebido (base64/svg): disponivel para renderizacao segura no app.</div> : null}
-            {secret ? <p className="text-xs text-muted-foreground">Secret temporario disponivel apenas para setup inicial: {secret.slice(0, 4)}...</p> : null}
+            {qrCode ? <img src={qrCode} alt="QR Code MFA" className="h-44 w-44 rounded-md border border-border bg-white p-2" /> : null}
+            {secret ? <p className="text-xs text-muted-foreground">Codigo manual (backup): {secret}</p> : null}
             <Input placeholder="Factor ID" value={factorId} onChange={(e) => setFactorId(e.target.value)} />
             <Input placeholder="Codigo TOTP" value={code} onChange={(e) => setCode(e.target.value)} />
             <div className="flex flex-wrap gap-2">
