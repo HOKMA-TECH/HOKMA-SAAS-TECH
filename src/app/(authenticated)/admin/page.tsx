@@ -6,7 +6,7 @@ import { Search, Shield, UserCheck, UserX, UserCog, RefreshCw, Copy, KeyRound } 
 import { useAuth } from '@/features/auth/auth-context'
 import { useCan } from '@/features/auth/authorization'
 import { tenantQueryKey } from '@/lib/query/tenant-query-key'
-import { generateTenantJoinCode, listTenantMemberships, reviewMembership, updateMembershipRole, updateMembershipStatus } from '@/features/admin/tenant-admin-api'
+import { generateTenantJoinCode, listTenantMemberships, reviewMembership, rotateTenantJoinCode, updateMembershipRole, updateMembershipStatus } from '@/features/admin/tenant-admin-api'
 import type { AdminMembershipRow, MembershipStatusFilter } from '@/features/admin/types'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -62,6 +62,15 @@ export default function AdminPage() {
     if (result.code) setJoinCode(result.code)
   }
 
+  const onRotateJoinCode = async () => {
+    if (!activeTenant) return
+    const confirmed = window.confirm('Rotacionar o join code invalida o codigo anterior imediatamente. Deseja continuar?')
+    if (!confirmed) return
+    const result = await rotateTenantJoinCode(activeTenant)
+    setJoinCodeError(result.error)
+    if (result.code) setJoinCode(result.code)
+  }
+
   const guardedMutation = async (id: string, action: () => Promise<{ error: string | null }>) => {
     if (isMfaRequired && (canApprove || canChangeRole)) {
       alert('MFA obrigatorio para executar acoes criticas de governanca.')
@@ -106,11 +115,12 @@ export default function AdminPage() {
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2"><KeyRound className="h-4 w-4" /> Join code de convite</CardTitle>
-          <CardDescription>Gere um codigo para novos usuarios entrarem no tenant.</CardDescription>
+          <CardDescription>O join code e fixo por tenant e nao expira automaticamente. Rotacione manualmente quando necessario.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-3">
           <div className="flex flex-wrap items-center gap-2">
-            <Button onClick={() => void onGenerateJoinCode()} disabled={!activeTenant}>Gerar join code</Button>
+            <Button onClick={() => void onGenerateJoinCode()} disabled={!activeTenant}>Ver join code</Button>
+            <Button variant="outline" onClick={() => void onRotateJoinCode()} disabled={!activeTenant}>Rotacionar</Button>
             {joinCode ? (
               <Button variant="outline" className="gap-2" onClick={() => void navigator.clipboard.writeText(joinCode)}>
                 <Copy className="h-4 w-4" /> Copiar

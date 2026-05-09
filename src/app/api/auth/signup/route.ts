@@ -138,23 +138,18 @@ export async function POST(req: NextRequest) {
   if (mode === 'join_tenant' && createdUser.user) {
     const allowedRoles = new Set(['corretor', 'coordenador', 'gerente', 'diretor', 'administrador'])
     const role = allowedRoles.has(requestedRole) ? requestedRole : 'corretor'
-    const codeHash = createHash('sha256').update(joinCode).digest('hex')
+    const sha256Hash = createHash('sha256').update(joinCode).digest('hex')
+    const md5Hash = createHash('md5').update(joinCode).digest('hex')
 
     const joinCodeLookup = await adminClient
       .from('tenant_join_codes')
-      .select('id, tenant_id, expires_at, status')
-      .eq('code_hash', codeHash)
+      .select('id, tenant_id, status')
+      .in('code_hash', [sha256Hash, md5Hash])
       .eq('status', 'active')
       .maybeSingle()
 
     if (joinCodeLookup.error || !joinCodeLookup.data?.tenant_id) {
-      return NextResponse.json({ error: 'Codigo de convite invalido ou expirado.' }, { status: 400 })
-    }
-
-    const nowIso = new Date().toISOString()
-    if (joinCodeLookup.data.expires_at && joinCodeLookup.data.expires_at < nowIso) {
-      await adminClient.from('tenant_join_codes').update({ status: 'expired' }).eq('id', joinCodeLookup.data.id)
-      return NextResponse.json({ error: 'Codigo de convite expirado.' }, { status: 400 })
+      return NextResponse.json({ error: 'Codigo de convite invalido.' }, { status: 400 })
     }
 
     const membershipInsert = await adminClient.from('tenant_memberships').insert({
@@ -172,7 +167,7 @@ export async function POST(req: NextRequest) {
 
     await adminClient
       .from('tenant_join_codes')
-      .update({ status: 'used', used_at: new Date().toISOString(), used_by: createdUser.user.id })
+      .update({ used_at: new Date().toISOString(), used_by: createdUser.user.id })
       .eq('id', joinCodeLookup.data.id)
       .eq('status', 'active')
   }
