@@ -3,8 +3,9 @@
 import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { cn } from '@/lib/utils'
-import { useUIStore, useAuthStore, useTenantStore, useNotificationStore } from '@/lib/store'
+import { useUIStore, useTenantStore } from '@/lib/store'
 import { mockTenants, mockNotifications } from '@/lib/mock-data'
+import { useAuth } from '@/features/auth/auth-context'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
@@ -39,7 +40,7 @@ import {
 
 export function Topbar() {
   const { sidebarCollapsed } = useUIStore()
-  const { user, logout } = useAuthStore()
+  const { user, profile, activeMembership, signOut } = useAuth()
   const { currentTenant, setCurrentTenant } = useTenantStore()
   const [searchFocused, setSearchFocused] = useState(false)
 
@@ -191,17 +192,17 @@ export function Topbar() {
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" className="gap-2 h-10 pl-2 pr-3">
                 <Avatar className="h-8 w-8">
-                  <AvatarImage src={user?.avatar} />
+                  <AvatarImage src={profile?.avatar_path ?? undefined} />
                   <AvatarFallback className="bg-primary/10 text-primary text-xs font-medium">
-                    {user?.name?.charAt(0) || 'R'}
+                    {(profile?.display_name ?? user?.email ?? 'U').charAt(0).toUpperCase()}
                   </AvatarFallback>
                 </Avatar>
                 <div className="hidden md:block text-left">
                   <p className="text-sm font-medium leading-tight">
-                    {user?.name || 'Ricardo Almeida'}
+                    {profile?.display_name || user?.email || 'Usuario'}
                   </p>
                   <p className="text-xs text-muted-foreground">
-                    {user?.role || 'Administrador'}
+                    {activeMembership?.role || 'Sem role'}
                   </p>
                 </div>
                 <ChevronDown className="h-3 w-3 text-muted-foreground" />
@@ -222,8 +223,9 @@ export function Topbar() {
               <DropdownMenuItem 
                 className="gap-2 text-destructive focus:text-destructive"
                 onClick={() => {
-                  logout()
+                  void signOut().finally(() => {
                   window.location.href = '/login'
+                  })
                 }}
               >
                 <LogOut className="h-4 w-4" />
