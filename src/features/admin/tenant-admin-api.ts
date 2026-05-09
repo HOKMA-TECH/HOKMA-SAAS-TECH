@@ -27,3 +27,9 @@ export async function updateMembershipStatus(membershipId: string, status: Extra
   const { error } = await supabase.from('tenant_memberships').update({ status }).eq('id', membershipId)
   return { error: error ? 'Nao foi possivel atualizar o status do membro.' : null }
 }
+
+export async function generateTenantJoinCode(tenantId: string): Promise<{ code: string | null; error: string | null }> {
+  const { data, error } = await supabase.rpc('rpc_generate_join_code', { p_tenant_id: tenantId })
+  if (error) return { code: null, error: 'Nao foi possivel gerar join code.' }
+  return { code: typeof data === 'string' ? data : null, error: null }
+}

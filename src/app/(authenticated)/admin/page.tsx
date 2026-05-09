@@ -2,11 +2,11 @@
 
 import { useMemo, useState } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { Search, Shield, UserCheck, UserX, UserCog, RefreshCw } from 'lucide-react'
+import { Search, Shield, UserCheck, UserX, UserCog, RefreshCw, Copy, KeyRound } from 'lucide-react'
 import { useAuth } from '@/features/auth/auth-context'
 import { useCan } from '@/features/auth/authorization'
 import { tenantQueryKey } from '@/lib/query/tenant-query-key'
-import { listTenantMemberships, reviewMembership, updateMembershipRole, updateMembershipStatus } from '@/features/admin/tenant-admin-api'
+import { generateTenantJoinCode, listTenantMemberships, reviewMembership, updateMembershipRole, updateMembershipStatus } from '@/features/admin/tenant-admin-api'
 import type { AdminMembershipRow, MembershipStatusFilter } from '@/features/admin/types'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -27,6 +27,8 @@ export default function AdminPage() {
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState<MembershipStatusFilter>('all')
   const [isMutating, setIsMutating] = useState<string | null>(null)
+  const [joinCode, setJoinCode] = useState<string | null>(null)
+  const [joinCodeError, setJoinCodeError] = useState<string | null>(null)
 
   const membershipsQuery = useQuery({
     queryKey: tenantQueryKey(activeTenant, 'admin-memberships'),
@@ -51,6 +53,13 @@ export default function AdminPage() {
 
   const refresh = async () => {
     await queryClient.invalidateQueries({ queryKey: tenantQueryKey(activeTenant, 'admin-memberships') })
+  }
+
+  const onGenerateJoinCode = async () => {
+    if (!activeTenant) return
+    const result = await generateTenantJoinCode(activeTenant)
+    setJoinCodeError(result.error)
+    if (result.code) setJoinCode(result.code)
   }
 
   const guardedMutation = async (id: string, action: () => Promise<{ error: string | null }>) => {
@@ -91,6 +100,25 @@ export default function AdminPage() {
           <Badge variant={canChangeRole ? 'default' : 'secondary'} className="justify-center py-2">{canChangeRole ? 'Pode trocar role' : 'Sem troca de role'}</Badge>
           <Badge variant={canSuspend ? 'default' : 'secondary'} className="justify-center py-2">{canSuspend ? 'Pode suspender' : 'Sem suspensao'}</Badge>
           <Badge variant={canReadAudit ? 'default' : 'secondary'} className="justify-center py-2">{canReadAudit ? 'Pode auditar' : 'Sem auditoria'}</Badge>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2"><KeyRound className="h-4 w-4" /> Join code de convite</CardTitle>
+          <CardDescription>Gere um codigo para novos usuarios entrarem no tenant.</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <div className="flex flex-wrap items-center gap-2">
+            <Button onClick={() => void onGenerateJoinCode()} disabled={!activeTenant}>Gerar join code</Button>
+            {joinCode ? (
+              <Button variant="outline" className="gap-2" onClick={() => void navigator.clipboard.writeText(joinCode)}>
+                <Copy className="h-4 w-4" /> Copiar
+              </Button>
+            ) : null}
+          </div>
+          {joinCode ? <p className="text-sm font-mono">{joinCode}</p> : <p className="text-sm text-muted-foreground">Nenhum join code gerado nesta sessao.</p>}
+          {joinCodeError ? <p className="text-sm text-destructive">{joinCodeError}</p> : null}
         </CardContent>
       </Card>
 
