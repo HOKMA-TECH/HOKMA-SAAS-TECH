@@ -1,6 +1,6 @@
 import type { Session, User } from '@supabase/supabase-js'
 
-export type TenantRole = 'corretor' | 'coordenador' | 'gerente' | 'diretor' | 'administrador'
+export type TenantRole = 'corretor' | 'coordenador' | 'gerente' | 'diretor' | 'administrador' | 'master_admin'
 export type MembershipStatus = 'pending' | 'active' | 'rejected' | 'revoked'
 
 export type Membership = {

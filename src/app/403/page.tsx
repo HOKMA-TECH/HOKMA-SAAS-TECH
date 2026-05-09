@@ -8,7 +8,7 @@ import { useAuth } from '@/features/auth/auth-context'
 export default function AccessDeniedPage() {
   const router = useRouter()
   const { activeMembership } = useAuth()
-  const isPlatformContext = activeMembership?.role === 'master_admin'
+  const isPlatformContext = false
 
   return (
     <main className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-100">

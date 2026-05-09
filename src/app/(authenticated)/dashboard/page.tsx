@@ -65,37 +65,6 @@ export default function DashboardPage() {
 
   const stats = roleStats[role] ?? roleStats.corretor
 
-  const stats = [
-    { 
-      title: 'Vendas Concluídas', 
-      value: 0, 
-      description: '0% de conclusão no período',
-      icon: DollarSign,
-      iconColor: 'blue' as const,
-    },
-    { 
-      title: 'Em Análise', 
-      value: 2, 
-      description: 'Clientes aguardando decisão',
-      icon: TrendingUp,
-      iconColor: 'indigo' as const,
-    },
-    { 
-      title: 'Aprovados', 
-      value: 1, 
-      description: 'Aprovado, condicionado e contrato',
-      icon: CheckCircle2,
-      iconColor: 'green' as const,
-    },
-    { 
-      title: 'Leads Ativos', 
-      value: 0, 
-      description: 'Leads abertos e ganhos',
-      icon: Users,
-      iconColor: 'orange' as const,
-    },
-  ]
-
   return (
     <div className="space-y-6">
       <DashboardHero title={`Bem-vindo, ${profile?.display_name ?? 'time HOKMA'}`} subtitle={`Visao ${role} no tenant ${activeTenant ?? 'nao selecionado'}. Conteudo orientado por capability.`} />
