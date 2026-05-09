@@ -6,6 +6,7 @@ import { cn } from '@/lib/utils'
 import { useUIStore, useTenantStore } from '@/lib/store'
 import { mockTenants, mockNotifications } from '@/lib/mock-data'
 import { useAuth } from '@/features/auth/auth-context'
+import { Can, useCan } from '@/features/auth/authorization'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
@@ -43,6 +44,8 @@ export function Topbar() {
   const { user, profile, activeMembership, signOut } = useAuth()
   const { currentTenant, setCurrentTenant } = useTenantStore()
   const [searchFocused, setSearchFocused] = useState(false)
+  const canManageSettings = useCan('tenant.settings.manage')
+  const canPlatformManage = useCan('platform.tenants.manage', { context: 'platform' })
 
   // Initialize with mock data if not set
   const tenant = currentTenant || mockTenants[0]
@@ -210,15 +213,18 @@ export function Topbar() {
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-56">
               <DropdownMenuLabel>Minha Conta</DropdownMenuLabel>
+              {canPlatformManage ? <DropdownMenuLabel className="text-[11px] text-primary">Contexto Platform</DropdownMenuLabel> : null}
               <DropdownMenuSeparator />
               <DropdownMenuItem className="gap-2">
                 <User className="h-4 w-4" />
                 Perfil
               </DropdownMenuItem>
-              <DropdownMenuItem className="gap-2">
-                <Settings className="h-4 w-4" />
-                Configurações
-              </DropdownMenuItem>
+              <Can capability="tenant.settings.manage" fallback={null}>
+                <DropdownMenuItem className="gap-2">
+                  <Settings className="h-4 w-4" />
+                  Configuracoes
+                </DropdownMenuItem>
+              </Can>
               <DropdownMenuSeparator />
               <DropdownMenuItem 
                 className="gap-2 text-destructive focus:text-destructive"

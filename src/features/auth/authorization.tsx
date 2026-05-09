@@ -22,6 +22,14 @@ export function useCan(capability: Capability | Capability[], options: UseCanOpt
   return mode === 'all' ? required.every((cap) => caps.includes(cap)) : required.some((cap) => caps.includes(cap))
 }
 
+export function useCanAll(capabilities: Capability[], context: AccessContext = 'tenant'): boolean {
+  return useCan(capabilities, { mode: 'all', context })
+}
+
+export function useCanAny(capabilities: Capability[], context: AccessContext = 'tenant'): boolean {
+  return useCan(capabilities, { mode: 'any', context })
+}
+
 export function useRequiresMfaByCapability(): boolean {
   const { activeMembership } = useAuth()
   const caps = getCapabilitiesForRole(activeMembership?.role)

@@ -3,8 +3,7 @@
 import { useEffect, useMemo } from 'react'
 import { usePathname, useRouter } from 'next/navigation'
 import { useAuth } from '@/features/auth/auth-context'
-import { useCan } from '@/features/auth/authorization'
-import type { Capability } from '@/features/auth/capabilities'
+import { getCapabilitiesForRole, type Capability } from '@/features/auth/capabilities'
 import { getRouteCapabilityRule } from '@/features/auth/route-capabilities'
 
 export function AuthenticatedGuard({ children }: { children: React.ReactNode }) {
@@ -12,46 +11,41 @@ export function AuthenticatedGuard({ children }: { children: React.ReactNode }) 
   const pathname = usePathname()
   const { isLoading, isAuthenticated, hasPendingAccessRequest, needsTenantSelection, activeTenant, isMfaRequired, activeMembership } = useAuth()
   const activeRole = activeMembership?.role
-  const canClientes = useCan('clientes.read')
-  const canAgenda = useCan('agenda.read')
-  const canTarefas = useCan('tarefas.read')
-  const canRelatorios = useCan('relatorios.read')
-  const canSettings = useCan('tenant.settings.manage')
-  const canAudit = useCan('tenant.audit.read')
-  const canPlatformManage = useCan('platform.tenants.manage', { context: 'platform' })
-
-  const capabilityMap: Record<Capability, boolean> = useMemo(() => ({
-    'clientes.read': canClientes,
-    'clientes.create': false,
-    'clientes.update': false,
-    'clientes.delete': false,
-    'clientes.assign': false,
-    'clientes.export': false,
-    'documentos.read': false,
-    'documentos.upload': false,
-    'documentos.delete': false,
-    'documentos.generate_signed_url': false,
-    'agenda.read': canAgenda,
-    'agenda.create': false,
-    'agenda.update': false,
-    'agenda.manage_team': false,
-    'tarefas.read': canTarefas,
-    'tarefas.create': false,
-    'tarefas.assign': false,
-    'tarefas.complete': false,
-    'tarefas.report.read': false,
-    'tarefas.report.export': false,
-    'relatorios.read': canRelatorios,
-    'relatorios.export': false,
-    'usuarios.invite': false,
-    'usuarios.approve': false,
-    'usuarios.suspend': false,
-    'usuarios.change_role': false,
-    'tenant.settings.manage': canSettings,
-    'tenant.audit.read': canAudit,
-    'platform.tenants.manage': canPlatformManage,
-    'platform.audit.read': false,
-  }), [canClientes, canAgenda, canTarefas, canRelatorios, canSettings, canAudit, canPlatformManage])
+  const capabilityMap: Record<Capability, boolean> = useMemo(() => {
+    const roleCaps = getCapabilitiesForRole(activeRole)
+    return {
+      'clientes.read': roleCaps.includes('clientes.read'),
+      'clientes.create': roleCaps.includes('clientes.create'),
+      'clientes.update': roleCaps.includes('clientes.update'),
+      'clientes.delete': roleCaps.includes('clientes.delete'),
+      'clientes.assign': roleCaps.includes('clientes.assign'),
+      'clientes.export': roleCaps.includes('clientes.export'),
+      'documentos.read': roleCaps.includes('documentos.read'),
+      'documentos.upload': roleCaps.includes('documentos.upload'),
+      'documentos.delete': roleCaps.includes('documentos.delete'),
+      'documentos.generate_signed_url': roleCaps.includes('documentos.generate_signed_url'),
+      'agenda.read': roleCaps.includes('agenda.read'),
+      'agenda.create': roleCaps.includes('agenda.create'),
+      'agenda.update': roleCaps.includes('agenda.update'),
+      'agenda.manage_team': roleCaps.includes('agenda.manage_team'),
+      'tarefas.read': roleCaps.includes('tarefas.read'),
+      'tarefas.create': roleCaps.includes('tarefas.create'),
+      'tarefas.assign': roleCaps.includes('tarefas.assign'),
+      'tarefas.complete': roleCaps.includes('tarefas.complete'),
+      'tarefas.report.read': roleCaps.includes('tarefas.report.read'),
+      'tarefas.report.export': roleCaps.includes('tarefas.report.export'),
+      'relatorios.read': roleCaps.includes('relatorios.read'),
+      'relatorios.export': roleCaps.includes('relatorios.export'),
+      'usuarios.invite': roleCaps.includes('usuarios.invite'),
+      'usuarios.approve': roleCaps.includes('usuarios.approve'),
+      'usuarios.suspend': roleCaps.includes('usuarios.suspend'),
+      'usuarios.change_role': roleCaps.includes('usuarios.change_role'),
+      'tenant.settings.manage': roleCaps.includes('tenant.settings.manage'),
+      'tenant.audit.read': roleCaps.includes('tenant.audit.read'),
+      'platform.tenants.manage': roleCaps.includes('platform.tenants.manage'),
+      'platform.audit.read': roleCaps.includes('platform.audit.read'),
+    }
+  }, [activeRole])
 
   useEffect(() => {
     if (isLoading) return

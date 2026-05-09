@@ -26,7 +26,7 @@ import {
   ChevronLeft,
   ChevronRight,
 } from 'lucide-react'
-import { useCan } from '@/features/auth/authorization'
+import { Can, useCan } from '@/features/auth/authorization'
 import type { Capability } from '@/features/auth/capabilities'
 import type { AccessContext } from '@/features/auth/route-capabilities'
 
@@ -153,7 +153,13 @@ export function Sidebar() {
                 )
               }
 
-              return <div key={item.href}>{linkContent}</div>
+              const wrapped = item.capability ? (
+                <Can capability={item.capability} context={item.context ?? 'tenant'}>
+                  {linkContent}
+                </Can>
+              ) : linkContent
+
+              return <div key={item.href}>{wrapped}</div>
             })}
           </nav>
         </ScrollArea>

@@ -29,6 +29,50 @@ export function DashboardSection({ title, description, children }: { title: stri
   )
 }
 
+export function DashboardGrid({ children }: { children: React.ReactNode }) {
+  return <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">{children}</div>
+}
+
+export function DashboardSkeleton() {
+  return (
+    <div className="grid gap-4 md:grid-cols-3">
+      {Array.from({ length: 3 }).map((_, idx) => (
+        <Card key={idx} className="animate-pulse border-border/60">
+          <CardContent className="p-4">
+            <div className="h-3 w-24 rounded bg-slate-200" />
+            <div className="mt-3 h-7 w-16 rounded bg-slate-200" />
+            <div className="mt-2 h-3 w-32 rounded bg-slate-200" />
+          </CardContent>
+        </Card>
+      ))}
+    </div>
+  )
+}
+
+export function DashboardTenantSummary({ tenantId, role }: { tenantId: string | null; role: string | null }) {
+  return (
+    <Card className="border-border/60 bg-gradient-to-r from-white to-slate-50">
+      <CardContent className="p-4">
+        <p className="text-xs uppercase tracking-wide text-muted-foreground">Contexto Tenant</p>
+        <p className="mt-1 text-sm font-medium">Tenant ativo: {tenantId ?? 'nao selecionado'}</p>
+        <p className="mt-1 text-xs text-muted-foreground">Role ativa: {role ?? 'sem role'}</p>
+      </CardContent>
+    </Card>
+  )
+}
+
+export function DashboardPlatformSummary() {
+  return (
+    <Card className="border-blue-200 bg-gradient-to-r from-blue-50 to-indigo-50">
+      <CardContent className="p-4">
+        <p className="text-xs uppercase tracking-wide text-blue-700">Contexto Platform</p>
+        <p className="mt-1 text-sm font-medium text-blue-900">Visao global habilitada para master admin</p>
+        <p className="mt-1 text-xs text-blue-700">Dados de tenant nao sao misturados neste painel.</p>
+      </CardContent>
+    </Card>
+  )
+}
+
 export function DashboardShortcutCard({ title, description, href, icon: Icon }: { title: string; description: string; href: string; icon: LucideIcon }) {
   return (
     <Link href={href}>

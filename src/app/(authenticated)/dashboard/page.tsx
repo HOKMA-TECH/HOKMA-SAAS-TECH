@@ -1,10 +1,10 @@
 'use client'
 
 import { motion } from 'framer-motion'
-import { DashboardEmptyState, DashboardHero, DashboardSection, DashboardShortcutCard, DashboardStatCard } from '@/components/dashboard/role-dashboard'
+import { DashboardEmptyState, DashboardGrid, DashboardHero, DashboardPlatformSummary, DashboardSection, DashboardShortcutCard, DashboardStatCard, DashboardTenantSummary } from '@/components/dashboard/role-dashboard'
 import { SalesChart, LeadsOriginChart, FunnelChart, UpcomingSchedule, DiretoriaView } from '@/components/dashboard/charts'
 import { useAuth } from '@/features/auth/auth-context'
-import { useCan } from '@/features/auth/authorization'
+import { Can, useCan } from '@/features/auth/authorization'
 import { 
   Target,
   Activity,
@@ -69,16 +69,20 @@ export default function DashboardPage() {
     <div className="space-y-6">
       <DashboardHero title={`Bem-vindo, ${profile?.display_name ?? 'time HOKMA'}`} subtitle={`Visao ${role} no tenant ${activeTenant ?? 'nao selecionado'}. Conteudo orientado por capability.`} />
 
+      <DashboardTenantSummary tenantId={activeTenant} role={activeMembership?.role ?? null} />
+
+      {canPlatform ? <DashboardPlatformSummary /> : null}
+
       <DashboardSection title="Atalhos operacionais" description="Acesso rapido aos modulos permitidos no seu contexto.">
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          {canClients ? <DashboardShortcutCard title="Clientes" description="Gerencie carteira e oportunidades." href="/clientes" icon={Users} /> : null}
-          {canAgenda ? <DashboardShortcutCard title="Agenda" description="Acompanhe compromissos e visitas." href="/agenda" icon={Calendar} /> : null}
-          {canTasks ? <DashboardShortcutCard title="Tarefas" description="Fluxo diario da operacao." href="/tarefas" icon={CheckSquare} /> : null}
-          {canChat ? <DashboardShortcutCard title="Chat" description="Comunicacao operacional." href="/chat" icon={MessageSquare} /> : null}
-          {canReports ? <DashboardShortcutCard title="Relatorios" description="Leituras gerenciais e performance." href="/relatorios" icon={BarChart3} /> : null}
-          {canAdmin ? <DashboardShortcutCard title="Painel Admin" description="Governanca do tenant e auditoria." href="/admin" icon={Shield} /> : null}
-          {canSettings ? <DashboardShortcutCard title="Configuracoes" description="Controles basicos do tenant." href="/configuracoes" icon={Settings} /> : null}
-        </div>
+        <DashboardGrid>
+          <Can capability="clientes.read"><DashboardShortcutCard title="Clientes" description="Gerencie carteira e oportunidades." href="/clientes" icon={Users} /></Can>
+          <Can capability="agenda.read"><DashboardShortcutCard title="Agenda" description="Acompanhe compromissos e visitas." href="/agenda" icon={Calendar} /></Can>
+          <Can capability="tarefas.read"><DashboardShortcutCard title="Tarefas" description="Fluxo diario da operacao." href="/tarefas" icon={CheckSquare} /></Can>
+          <Can capability="documentos.read"><DashboardShortcutCard title="Chat" description="Comunicacao operacional." href="/chat" icon={MessageSquare} /></Can>
+          <Can capability="relatorios.read"><DashboardShortcutCard title="Relatorios" description="Leituras gerenciais e performance." href="/relatorios" icon={BarChart3} /></Can>
+          <Can capability="tenant.audit.read"><DashboardShortcutCard title="Painel Admin" description="Governanca do tenant e auditoria." href="/admin" icon={Shield} /></Can>
+          <Can capability="tenant.settings.manage"><DashboardShortcutCard title="Configuracoes" description="Controles basicos do tenant." href="/configuracoes" icon={Settings} /></Can>
+        </DashboardGrid>
       </DashboardSection>
 
       {canPlatform ? (

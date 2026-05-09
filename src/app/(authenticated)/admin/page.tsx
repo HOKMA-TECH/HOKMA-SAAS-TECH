@@ -29,6 +29,7 @@ export default function AdminPage() {
   const [isMutating, setIsMutating] = useState<string | null>(null)
   const [joinCode, setJoinCode] = useState<string | null>(null)
   const [joinCodeError, setJoinCodeError] = useState<string | null>(null)
+  const [actionFeedback, setActionFeedback] = useState<string | null>(null)
 
   const membershipsQuery = useQuery({
     queryKey: tenantQueryKey(activeTenant, 'admin-memberships'),
@@ -46,10 +47,12 @@ export default function AdminPage() {
     return source.filter((row) => {
       const matchesStatus = statusFilter === 'all' ? true : row.status === statusFilter
       const keyword = search.trim().toLowerCase()
-      const matchesSearch = keyword.length === 0 || row.role.toLowerCase().includes(keyword) || row.user_id.toLowerCase().includes(keyword)
+      const matchesSearch = keyword.length === 0 || row.role.toLowerCase().includes(keyword) || row.user_id.toLowerCase().includes(keyword) || row.status.toLowerCase().includes(keyword)
       return matchesStatus && matchesSearch
     })
   }, [membershipsQuery.data, search, statusFilter])
+
+  const pendingCount = useMemo(() => (membershipsQuery.data ?? []).filter((row) => row.status === 'pending').length, [membershipsQuery.data])
 
   const refresh = async () => {
     await queryClient.invalidateQueries({ queryKey: tenantQueryKey(activeTenant, 'admin-memberships') })
@@ -80,9 +83,10 @@ export default function AdminPage() {
     const result = await action()
     setIsMutating(null)
     if (result.error) {
-      alert(result.error)
+      setActionFeedback(result.error)
       return
     }
+    setActionFeedback('Acao concluida com sucesso.')
     await refresh()
   }
 
@@ -135,13 +139,16 @@ export default function AdminPage() {
       <Card>
         <CardHeader>
           <CardTitle>Membros do tenant</CardTitle>
-          <CardDescription>Lista segura por RPC autorizada e operacoes por capability.</CardDescription>
+          <CardDescription>Lista segura por RPC autorizada e operacoes por capability. Pendentes atuais: {pendingCount}.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
+          {actionFeedback ? (
+            <div className="rounded-md border bg-muted/50 px-3 py-2 text-sm text-foreground">{actionFeedback}</div>
+          ) : null}
           <div className="grid gap-3 md:grid-cols-3">
             <div className="relative md:col-span-2">
               <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-              <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Buscar por role ou user id" className="pl-9" />
+              <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Buscar por role, user id ou status" className="pl-9" />
             </div>
             <Select value={statusFilter} onValueChange={(v) => setStatusFilter(v as MembershipStatusFilter)}>
               <SelectTrigger><SelectValue placeholder="Filtrar status" /></SelectTrigger>
@@ -213,6 +220,9 @@ export default function AdminPage() {
           {filtered.length === 0 ? (
             <div className="rounded-lg border border-dashed p-8 text-center text-sm text-muted-foreground">Nenhum membro encontrado para o filtro selecionado.</div>
           ) : null}
+          <div className="rounded-lg border border-dashed p-4 text-sm text-muted-foreground">
+            Fluxo recomendado: novos usuarios entram como <span className="font-medium text-foreground">pendente/corretor</span>; aprove ou rejeite, e depois ajuste role conforme necessidade.
+          </div>
         </CardContent>
       </Card>
     </div>

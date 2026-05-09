@@ -8,7 +8,7 @@ import { useAuth } from '@/features/auth/auth-context'
 export default function AccessDeniedPage() {
   const router = useRouter()
   const { activeMembership } = useAuth()
-  const isPlatformContext = false
+  const isPlatformContext = activeMembership?.role === 'master_admin'
 
   return (
     <main className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-100">
@@ -21,7 +21,7 @@ export default function AccessDeniedPage() {
         </p>
         <h1 className="text-balance text-4xl font-semibold text-slate-900">Voce nao tem permissao para acessar esta area.</h1>
         <p className="mt-4 max-w-xl text-sm leading-relaxed text-slate-600">
-          Esta acao exige capacidades de seguranca especificas. Se voce acredita que isso e um engano, entre em contato com o administrador responsavel.
+            Esta acao exige capacidades de seguranca especificas. Se voce acredita que isso e um engano, fale com um administrador da sua organizacao.
         </p>
         <div className="mt-8 flex w-full max-w-md gap-3">
           <Button variant="outline" className="flex-1 gap-2" onClick={() => router.back()}>
