@@ -33,4 +33,5 @@ export type AuthState = {
   isMfaRequired: boolean
   needsTenantSelection: boolean
   hasPendingAccessRequest: boolean
+  isMfaEnabled: boolean
 }

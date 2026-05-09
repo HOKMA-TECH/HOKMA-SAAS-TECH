@@ -18,6 +18,7 @@ type AuthContextValue = AuthState & {
   verifyTotp: (factorId: string, code: string) => Promise<{ error: string | null }>
   disableTotp: (factorId: string) => Promise<{ error: string | null }>
   retryMfaChallenge: (factorId: string) => Promise<{ challengeId: string | null; error: string | null }>
+  setMfaEnabled: (enabled: boolean) => Promise<{ error: string | null }>
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null)
@@ -74,6 +75,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [memberships, setMemberships] = useState<Membership[]>([])
   const [activeTenant, setActiveTenant] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(true)
+  const [isMfaEnabled, setIsMfaEnabledState] = useState(false)
 
   const refreshAuthState = async () => {
     setIsLoading(true)
@@ -81,6 +83,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setSession(data.session)
     setUser(data.session?.user ?? null)
     if (data.session?.user) {
+      const metadata = (data.session.user.user_metadata ?? {}) as { mfa_enabled?: boolean }
+      setIsMfaEnabledState(Boolean(metadata.mfa_enabled))
       const [p, m] = await Promise.all([loadProfile(data.session.user), loadMemberships()])
       setProfile(p)
       setMemberships(m)
@@ -91,6 +95,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         return null
       })
     } else {
+      setIsMfaEnabledState(false)
       setProfile(null)
       setMemberships([])
       setActiveTenant(null)
@@ -206,9 +211,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const activeMembership = memberships.find((m) => m.tenant_id === activeTenant) ?? null
   const hasPendingAccessRequest = memberships.some((m) => m.status === 'pending')
   const needsTenantSelection = !!user && memberships.filter((m) => m.status === 'active').length > 1 && !activeTenant
-  const roleMfaRequired = false
+  const roleMfaRequired = isMfaEnabled && !!user
   const capabilityMfaRequired = false
-  const isMfaRequired = false
+  const isMfaRequired = (roleMfaRequired || capabilityMfaRequired) && !hasVerifiedTotpFactor(user)
 
   const value = useMemo<AuthContextValue>(() => ({
     user,
@@ -222,6 +227,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     isMfaRequired,
     needsTenantSelection,
     hasPendingAccessRequest,
+    isMfaEnabled,
     signIn,
     signUp,
     signOut,
@@ -249,7 +255,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const challenge = await supabase.auth.mfa.challenge({ factorId })
       return { challengeId: challenge.data?.id ?? null, error: challenge.error ? 'Nao foi possivel gerar novo desafio MFA.' : null }
     },
-  }), [user, session, profile, memberships, activeTenant, activeMembership, isLoading, isMfaRequired, needsTenantSelection, hasPendingAccessRequest])
+    setMfaEnabled: async (enabled: boolean) => {
+      const { data, error } = await supabase.auth.updateUser({ data: { mfa_enabled: enabled } })
+      if (error) return { error: 'Nao foi possivel atualizar preferencia de MFA.' }
+      setUser(data.user)
+      setIsMfaEnabledState(enabled)
+      return { error: null }
+    },
+  }), [user, session, profile, memberships, activeTenant, activeMembership, isLoading, isMfaRequired, needsTenantSelection, hasPendingAccessRequest, isMfaEnabled])
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
 }
