@@ -113,7 +113,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       return { error: guardJson.error ?? 'Falha na verificacao anti-bot (verification-failed).' }
     }
 
-    const { error } = await supabase.auth.signInWithPassword({ email, password })
+    const { error } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+      options: { captchaToken: turnstileToken },
+    })
 
     await fetch('/api/auth/login', {
       method: 'POST',
@@ -161,7 +165,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       return { error: signupJson.error ?? 'Nao foi possivel criar a conta com os dados informados.' }
     }
 
-    const { data: signInData, error } = await supabase.auth.signInWithPassword({ email: input.email, password: input.password })
+    const { data: signInData, error } = await supabase.auth.signInWithPassword({
+      email: input.email,
+      password: input.password,
+      options: { captchaToken: input.turnstileToken },
+    })
     await recordAuthAttempt(input.email, 'sign_up', !error, {
       source: 'app_auth',
       reason: error?.message ?? null,
