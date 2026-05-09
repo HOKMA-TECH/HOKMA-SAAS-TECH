@@ -2,12 +2,14 @@
 
 import { useState } from 'react'
 import { motion } from 'framer-motion'
+import { useRouter } from 'next/navigation'
 import { useAuth } from '@/features/auth/auth-context'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 
 export default function MfaPage() {
+  const router = useRouter()
   const { enrollTotp, verifyTotp, disableTotp, retryMfaChallenge } = useAuth()
   const [factorId, setFactorId] = useState('')
   const [code, setCode] = useState('')
@@ -35,6 +37,10 @@ export default function MfaPage() {
     setIsBusy(true)
     const result = await verifyTotp(factorId, code)
     setMessage(result.error ?? 'MFA verificado com sucesso.')
+    if (!result.error) {
+      router.replace('/')
+      router.refresh()
+    }
     setIsBusy(false)
   }
 
