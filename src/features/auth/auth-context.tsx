@@ -131,21 +131,27 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       return { error: `Muitas tentativas. Aguarde ${rateLimit.retryAfterSeconds}s e tente novamente.` }
     }
 
-    const { data, error } = await supabase.auth.signUp({
-      email: input.email,
-      password: input.password,
-      options: {
-        data: { display_name: input.displayName },
-        captchaToken: input.turnstileToken,
-      },
+    const signupGuard = await fetch('/api/auth/signup', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        email: input.email,
+        password: input.password,
+        displayName: input.displayName,
+        turnstileToken: input.turnstileToken,
+      }),
     })
-    await recordAuthAttempt(input.email, 'sign_up', !error, { source: 'app_auth' })
-    if (error) {
-      return { error: error.message || 'Nao foi possivel criar a conta com os dados informados.' }
+
+    const signupJson = (await signupGuard.json().catch(() => ({}))) as { error?: string }
+    if (!signupGuard.ok) {
+      await recordAuthAttempt(input.email, 'sign_up', false, { source: 'app_auth', reason: 'api_signup_rejected' })
+      return { error: signupJson.error ?? 'Nao foi possivel criar a conta com os dados informados.' }
     }
 
-    if (!data.session) {
-      return { error: 'Conta criada, mas o login depende de confirmacao de e-mail antes do onboarding do tenant.' }
+    const { data: signInData, error } = await supabase.auth.signInWithPassword({ email: input.email, password: input.password })
+    await recordAuthAttempt(input.email, 'sign_up', !error, { source: 'app_auth' })
+    if (error || !signInData.session) {
+      return { error: 'Conta criada, mas nao foi possivel iniciar sessao automaticamente.' }
     }
 
     if (input.mode === 'create_tenant') {
