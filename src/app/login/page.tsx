@@ -1,11 +1,12 @@
 'use client'
 
-import { useState } from 'react'
+import { useCallback, useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { motion } from 'framer-motion'
-import { useAuthStore, useTenantStore } from '@/lib/store'
-import { mockUser, mockTenants } from '@/lib/mock-data'
+import { useAuth } from '@/features/auth/auth-context'
+import { TurnstileWidget } from '@/features/auth/turnstile-widget'
+import { resolveCaptchaToken } from '@/features/auth/captcha'
 import { Logo } from '@/components/logo'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -15,32 +16,42 @@ import { Eye, EyeOff, ArrowRight, Loader2 } from 'lucide-react'
 
 export default function LoginPage() {
   const router = useRouter()
-  const { setUser } = useAuthStore()
-  const { setCurrentTenant, setTenants } = useTenantStore()
+  const { signIn } = useAuth()
   
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState('')
+  const [captchaToken, setCaptchaToken] = useState<string | null>(null)
+
+  const handleTokenChange = useCallback((token: string | null) => {
+    setCaptchaToken(token)
+    if (token) setError('')
+  }, [])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError('')
     setIsLoading(true)
 
-    // Simulate API call
-    await new Promise((resolve) => setTimeout(resolve, 1500))
+    const resolvedCaptchaToken = resolveCaptchaToken(captchaToken)
 
-    // Mock authentication
-    if (email && password) {
-      setUser(mockUser)
-      setTenants(mockTenants)
-      setCurrentTenant(mockTenants[0])
-      router.push('/dashboard')
-    } else {
-      setError('Por favor, preencha todos os campos')
+    if (!resolvedCaptchaToken) {
+      setError('Complete a verificacao anti-bot para continuar.')
+      setIsLoading(false)
+      return
     }
+
+    const result = await signIn(email, password, resolvedCaptchaToken)
+    if (result.error) {
+      setError(result.error)
+      setCaptchaToken(null)
+      setIsLoading(false)
+      return
+    }
+
+    router.push('/')
 
     setIsLoading(false)
   }
@@ -143,8 +154,8 @@ export default function LoginPage() {
                 <div className="space-y-2">
                   <div className="flex items-center justify-between">
                     <Label htmlFor="password">Senha</Label>
-                    <Link 
-                      href="/recuperar-senha" 
+                      <Link 
+                       href="/auth/recuperar-senha" 
                       className="text-sm text-primary hover:underline"
                     >
                       Esqueceu a senha?
@@ -183,6 +194,10 @@ export default function LoginPage() {
                     {error}
                   </motion.p>
                 )}
+
+                <TurnstileWidget
+                  onTokenChange={handleTokenChange}
+                />
 
                 <Button 
                   type="submit" 

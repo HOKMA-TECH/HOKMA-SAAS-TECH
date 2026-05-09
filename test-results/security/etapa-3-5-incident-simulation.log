@@ -1,0 +1,102 @@
+BEGIN
+CREATE EXTENSION
+ plan  
+-------
+ 1..18
+(1 row)
+
+                ok                
+----------------------------------
+ ok 1 - tenant_memberships exists
+(1 row)
+
+              ok               
+-------------------------------
+ ok 2 - platform_admins exists
+(1 row)
+
+               ok                
+---------------------------------
+ ok 3 - tenant_join_codes exists
+(1 row)
+
+                     ok                     
+--------------------------------------------
+ ok 4 - tenant_memberships protected by RLS
+(1 row)
+
+               ok                
+---------------------------------
+ ok 5 - tenants protected by RLS
+(1 row)
+
+                   ok                    
+-----------------------------------------
+ ok 6 - platform_admins protected by RLS
+(1 row)
+
+                    ok                    
+------------------------------------------
+ ok 7 - is_member_of_tenant helper exists
+(1 row)
+
+                  ok                  
+--------------------------------------
+ ok 8 - has_tenant_role helper exists
+(1 row)
+
+                                 throws_ok                                  
+----------------------------------------------------------------------------
+ ok 9 - pending/no-membership identity is blocked from tenant structure RPC
+(1 row)
+
+                             throws_ok                             
+-------------------------------------------------------------------
+ ok 10 - unauthenticated/revoked session cannot review memberships
+(1 row)
+
+                          throws_ok                           
+--------------------------------------------------------------
+ ok 11 - join code onboarding requires authenticated identity
+(1 row)
+
+                      ok                      
+----------------------------------------------
+ ok 12 - membership secure listing RPC exists
+(1 row)
+
+                  ok                  
+--------------------------------------
+ ok 13 - membership review RPC exists
+(1 row)
+
+                   ok                    
+-----------------------------------------
+ ok 14 - join code generation RPC exists
+(1 row)
+
+                   ok                    
+-----------------------------------------
+ ok 15 - join code onboarding RPC exists
+(1 row)
+
+                         ok                         
+----------------------------------------------------
+ ok 16 - tenant membership lifecycle status present
+(1 row)
+
+                        ok                         
+---------------------------------------------------
+ ok 17 - join code single-use trace column present
+(1 row)
+
+                                                    pass                                                     
+-------------------------------------------------------------------------------------------------------------
+ ok 18 - authz scenario harness validates contracts for pending/revoked/multi-tenant/master-admin separation
+(1 row)
+
+ finish 
+--------
+(0 rows)
+
+ROLLBACK

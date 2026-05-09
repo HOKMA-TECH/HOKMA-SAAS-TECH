@@ -4,6 +4,10 @@ import { useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { motion } from 'framer-motion'
+import { useAuth } from '@/features/auth/auth-context'
+import { TurnstileWidget } from '@/features/auth/turnstile-widget'
+import { resolveCaptchaToken } from '@/features/auth/captcha'
+import { validateStrongPassword } from '@/features/auth/password-policy'
 import { Logo } from '@/components/logo'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -13,6 +17,7 @@ import { Eye, EyeOff, ArrowRight, Loader2, Building2, User, Mail, Lock } from 'l
 
 export default function CadastroPage() {
   const router = useRouter()
+  const { signUp } = useAuth()
   
   const [formData, setFormData] = useState({
     nome: '',
@@ -25,6 +30,8 @@ export default function CadastroPage() {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState('')
+  const [captchaToken, setCaptchaToken] = useState<string | null>(null)
+  const [passwordErrors, setPasswordErrors] = useState<string[]>([])
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({ ...formData, [e.target.name]: e.target.value })
@@ -39,17 +46,29 @@ export default function CadastroPage() {
       return
     }
 
-    if (formData.senha.length < 6) {
-      setError('A senha deve ter pelo menos 6 caracteres')
+    const validationErrors = validateStrongPassword(formData.senha)
+    setPasswordErrors(validationErrors)
+    if (validationErrors.length > 0) {
+      setError('A senha nao atende aos requisitos de seguranca.')
+      return
+    }
+
+    const resolvedCaptchaToken = resolveCaptchaToken(captchaToken)
+    if (!resolvedCaptchaToken) {
+      setError('Complete a verificacao anti-bot para continuar.')
       return
     }
 
     setIsLoading(true)
 
-    // Simulate API call
-    await new Promise((resolve) => setTimeout(resolve, 2000))
+    const result = await signUp(formData.email, formData.senha, formData.nome)
+    if (result.error) {
+      setError(result.error)
+      setCaptchaToken(null)
+      setIsLoading(false)
+      return
+    }
 
-    // Redirect to login on success
     router.push('/login')
     setIsLoading(false)
   }
@@ -264,6 +283,16 @@ export default function CadastroPage() {
                     {error}
                   </motion.p>
                 )}
+
+                {passwordErrors.length > 0 ? (
+                  <ul className="space-y-1 text-xs text-muted-foreground">
+                    {passwordErrors.map((msg) => (
+                      <li key={msg}>- {msg}</li>
+                    ))}
+                  </ul>
+                ) : null}
+
+                <TurnstileWidget onTokenChange={setCaptchaToken} />
 
                 <Button 
                   type="submit" 

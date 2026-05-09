@@ -121,6 +121,22 @@ Implementadas:
 - `rpc_list_my_tenants()`
 - `rpc_generate_join_code(p_tenant_id)`
 
+## RPCs de onboarding seguro (fechamento da etapa)
+
+Implementadas:
+
+- `rpc_request_tenant_access(p_tenant_id, p_role, p_directorate_id, p_team_id, p_coordination_id)`
+- `rpc_review_tenant_access_request(p_membership_id, p_approve, p_message)`
+- `rpc_list_tenant_memberships_secure(p_tenant_id)`
+- `rpc_list_tenant_structure_secure(p_tenant_id)`
+
+Regras aplicadas:
+
+- fluxo por status (`pending`, `active`, `rejected`, `revoked`)
+- validacao estrita de role
+- aprovacao/rejeicao apenas por admin/diretor do tenant ou platform admin
+- log de eventos administrativos no fluxo de revisao
+
 Padrao aplicado:
 
 - `security definer`
@@ -163,6 +179,20 @@ Backend-only (nunca client):
 - Force RLS em tabelas centrais: ok
 - Base pronta para MFA/CAPTCHA: ok
 
+## Evidencias de validacao SQL
+
+Checklist executavel salvo em:
+
+- `docs/security/etapa-2-security-validation-checklist.sql`
+
+Esse arquivo cobre verificacoes de:
+
+- RLS e FORCE RLS
+- constraints de role/status
+- bucket privado e policies de storage
+- grants minimos para `anon/authenticated`
+- presenca e modo das RPCs de onboarding seguro
+
 ## Proximos passos recomendados
 
 1. Aplicar migrations no projeto cloud via `supabase db push`.
@@ -170,3 +200,7 @@ Backend-only (nunca client):
 3. Habilitar MFA/TOTP por politica progressiva (opt-in inicial).
 4. Adicionar RPCs para solicitacao/aprovacao/rejeicao de acesso.
 5. Integrar auditoria em toda acao administrativa sensivel.
+
+## Status final da Etapa 2
+
+Com a implementacao do schema core, RLS, hardening de auth, storage privado, RPCs de onboarding seguro e checklist probatorio, a fundacao segura de backend da Etapa 2 esta concluida.
