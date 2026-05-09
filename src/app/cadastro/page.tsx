@@ -67,6 +67,7 @@ export default function CadastroPage() {
       email: formData.email,
       password: formData.senha,
       displayName: formData.nome,
+      turnstileToken: resolvedCaptchaToken,
       mode: signupMode,
       tenantName: formData.nomeImobiliaria,
       joinCode: formData.codigoConvite,

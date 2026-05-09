@@ -8,7 +8,7 @@ import { CRITICAL_MFA_CAPABILITIES, getCapabilitiesForRole } from '@/features/au
 
 type AuthContextValue = AuthState & {
   signIn: (email: string, password: string, turnstileToken: string) => Promise<{ error: string | null }>
-  signUp: (input: { email: string; password: string; displayName: string; mode: 'create_tenant' | 'join_tenant'; tenantName?: string; joinCode?: string; requestedRole?: string }) => Promise<{ error: string | null }>
+  signUp: (input: { email: string; password: string; displayName: string; mode: 'create_tenant' | 'join_tenant'; tenantName?: string; joinCode?: string; requestedRole?: string; turnstileToken: string }) => Promise<{ error: string | null }>
   signOut: () => Promise<void>
   sendPasswordRecoveryEmail: (email: string) => Promise<{ error: string | null }>
   updatePassword: (password: string) => Promise<{ error: string | null }>
@@ -125,13 +125,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return { error: error ? 'Falha ao autenticar. Verifique suas credenciais.' : null }
   }
 
-  const signUp = async (input: { email: string; password: string; displayName: string; mode: 'create_tenant' | 'join_tenant'; tenantName?: string; joinCode?: string; requestedRole?: string }) => {
+  const signUp = async (input: { email: string; password: string; displayName: string; mode: 'create_tenant' | 'join_tenant'; tenantName?: string; joinCode?: string; requestedRole?: string; turnstileToken: string }) => {
     const rateLimit = await checkAuthRateLimit(input.email, 'sign_up')
     if (!rateLimit.allowed) {
       return { error: `Muitas tentativas. Aguarde ${rateLimit.retryAfterSeconds}s e tente novamente.` }
     }
 
-    const { data, error } = await supabase.auth.signUp({ email: input.email, password: input.password, options: { data: { display_name: input.displayName } } })
+    const { data, error } = await supabase.auth.signUp({
+      email: input.email,
+      password: input.password,
+      options: {
+        data: { display_name: input.displayName },
+        captchaToken: input.turnstileToken,
+      },
+    })
     await recordAuthAttempt(input.email, 'sign_up', !error, { source: 'app_auth' })
     if (error) {
       return { error: error.message || 'Nao foi possivel criar a conta com os dados informados.' }
