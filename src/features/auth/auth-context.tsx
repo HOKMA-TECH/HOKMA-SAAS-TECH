@@ -206,9 +206,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const activeMembership = memberships.find((m) => m.tenant_id === activeTenant) ?? null
   const hasPendingAccessRequest = memberships.some((m) => m.status === 'pending')
   const needsTenantSelection = !!user && memberships.filter((m) => m.status === 'active').length > 1 && !activeTenant
-  const roleMfaRequired = !!user && ['master_admin', 'administrador', 'diretor', 'gerente'].includes(activeMembership?.role ?? '')
-  const capabilityMfaRequired = getCapabilitiesForRole(activeMembership?.role).some((cap) => CRITICAL_MFA_CAPABILITIES.has(cap))
-  const isMfaRequired = (roleMfaRequired || capabilityMfaRequired) && !hasVerifiedTotpFactor(user)
+  const roleMfaRequired = false
+  const capabilityMfaRequired = false
+  const isMfaRequired = false
 
   const value = useMemo<AuthContextValue>(() => ({
     user,
