@@ -9,7 +9,7 @@ import { getRouteCapabilityRule } from '@/features/auth/route-capabilities'
 export function AuthenticatedGuard({ children }: { children: React.ReactNode }) {
   const router = useRouter()
   const pathname = usePathname()
-  const { isLoading, isAuthenticated, hasPendingAccessRequest, needsTenantSelection, activeTenant, isMfaRequired, activeMembership } = useAuth()
+  const { isLoading, isAuthenticated, hasPendingAccessRequest, needsTenantSelection, activeTenant, isMfaRequired, activeMembership, isPlatformAdmin } = useAuth()
   const activeRole = activeMembership?.role
   const capabilityMap: Record<Capability, boolean> = useMemo(() => {
     const roleCaps = getCapabilitiesForRole(activeRole)
@@ -89,7 +89,7 @@ export function AuthenticatedGuard({ children }: { children: React.ReactNode }) 
     }
 
     if (!routeRule) return
-    if (routeRule.context === 'platform' && activeRole !== 'master_admin') {
+    if (routeRule.context === 'platform' && !isPlatformAdmin) {
       router.replace('/403')
       return
     }
@@ -100,7 +100,7 @@ export function AuthenticatedGuard({ children }: { children: React.ReactNode }) 
     if (routeRule.capability && !capabilityMap[routeRule.capability]) {
       router.replace('/403')
     }
-  }, [router, pathname, isLoading, isAuthenticated, hasPendingAccessRequest, needsTenantSelection, activeTenant, isMfaRequired, capabilityMap, activeRole])
+  }, [router, pathname, isLoading, isAuthenticated, hasPendingAccessRequest, needsTenantSelection, activeTenant, isMfaRequired, capabilityMap, activeRole, isPlatformAdmin])
 
   const routeRule = getRouteCapabilityRule(pathname)
   const requiresTenantContext = routeRule?.context !== 'platform'

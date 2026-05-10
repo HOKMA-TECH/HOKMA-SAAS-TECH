@@ -11,10 +11,10 @@ type UseCanOptions = {
 }
 
 export function useCan(capability: Capability | Capability[], options: UseCanOptions = {}): boolean {
-  const { activeMembership } = useAuth()
+  const { activeMembership, isPlatformAdmin } = useAuth()
   const context = options.context ?? 'tenant'
   const mode = options.mode ?? 'all'
-  if (context === 'platform' && activeMembership?.role !== 'master_admin') return false
+  if (context === 'platform' && !isPlatformAdmin) return false
   if (context === 'tenant' && activeMembership?.role === 'master_admin') return false
 
   const caps = getCapabilitiesForRole(activeMembership?.role)

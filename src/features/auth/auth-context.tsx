@@ -19,6 +19,7 @@ type AuthContextValue = AuthState & {
   disableTotp: (factorId: string) => Promise<{ error: string | null }>
   retryMfaChallenge: (factorId: string) => Promise<{ challengeId: string | null; error: string | null }>
   setMfaEnabled: (enabled: boolean) => Promise<{ error: string | null }>
+  isPlatformAdmin: boolean
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null)
@@ -76,6 +77,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [activeTenant, setActiveTenant] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [isMfaEnabled, setIsMfaEnabledState] = useState(false)
+  const [isPlatformAdmin, setIsPlatformAdmin] = useState(false)
 
   const refreshAuthState = async () => {
     setIsLoading(true)
@@ -85,9 +87,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (data.session?.user) {
       const metadata = (data.session.user.user_metadata ?? {}) as { mfa_enabled?: boolean }
       setIsMfaEnabledState(Boolean(metadata.mfa_enabled))
-      const [p, m] = await Promise.all([loadProfile(data.session.user), loadMemberships()])
+      const [p, m, platformAdmin] = await Promise.all([
+        loadProfile(data.session.user),
+        loadMemberships(),
+        supabase.from('platform_admins').select('user_id').eq('user_id', data.session.user.id).eq('is_active', true).maybeSingle(),
+      ])
       setProfile(p)
       setMemberships(m)
+      setIsPlatformAdmin(Boolean(platformAdmin.data?.user_id))
       const activeMemberships = m.filter((membership) => membership.status === 'active')
       setActiveTenant((current) => {
         if (current && activeMemberships.some((membership) => membership.tenant_id === current)) return current
@@ -96,6 +103,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       })
     } else {
       setIsMfaEnabledState(false)
+      setIsPlatformAdmin(false)
       setProfile(null)
       setMemberships([])
       setActiveTenant(null)
@@ -229,6 +237,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     needsTenantSelection,
     hasPendingAccessRequest,
     isMfaEnabled,
+    isPlatformAdmin,
     signIn,
     signUp,
     signOut,
@@ -263,7 +272,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setIsMfaEnabledState(enabled)
       return { error: null }
     },
-  }), [user, session, profile, memberships, activeTenant, activeMembership, isLoading, isMfaRequired, needsTenantSelection, hasPendingAccessRequest, isMfaEnabled])
+  }), [user, session, profile, memberships, activeTenant, activeMembership, isLoading, isMfaRequired, needsTenantSelection, hasPendingAccessRequest, isMfaEnabled, isPlatformAdmin])
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
 }
