@@ -15,7 +15,7 @@ export async function reviewMembership(membershipId: string, approve: boolean, m
     p_approve: approve,
     p_message: message ?? null,
   })
-  return { error: error ? 'Falha ao revisar solicitacao de acesso.' : null }
+  return { error: error ? `Falha ao revisar solicitacao de acesso: ${error.message}` : null }
 }
 
 export async function updateMembershipRole(membershipId: string, role: AdminMembershipRow['role']): Promise<ReviewResult> {
