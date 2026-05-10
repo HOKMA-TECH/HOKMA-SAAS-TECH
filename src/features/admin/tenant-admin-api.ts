@@ -10,7 +10,7 @@ export async function listTenantMemberships(tenantId: string): Promise<{ data: A
 }
 
 export async function reviewMembership(membershipId: string, approve: boolean, message?: string): Promise<ReviewResult> {
-  const { error } = await supabase.rpc('rpc_review_tenant_membership', {
+  const { error } = await supabase.rpc('rpc_review_tenant_access_request', {
     p_membership_id: membershipId,
     p_approve: approve,
     p_message: message ?? null,
