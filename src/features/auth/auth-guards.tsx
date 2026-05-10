@@ -97,6 +97,10 @@ export function AuthenticatedGuard({ children }: { children: React.ReactNode }) 
       router.replace('/403')
       return
     }
+    if (routeRule.capability && routeRule.context === 'platform' && isPlatformAdmin) {
+      return
+    }
+
     if (routeRule.capability && !capabilityMap[routeRule.capability]) {
       router.replace('/403')
     }
