@@ -80,12 +80,14 @@ export function AuthenticatedGuard({ children }: { children: React.ReactNode }) 
       router.replace('/auth/selecionar-tenant')
       return
     }
-    if (!activeTenant) {
+    const routeRule = getRouteCapabilityRule(pathname)
+    const isPlatformRoute = routeRule?.context === 'platform'
+
+    if (!activeTenant && !isPlatformRoute) {
       router.replace('/auth/sem-tenant')
       return
     }
 
-    const routeRule = getRouteCapabilityRule(pathname)
     if (!routeRule) return
     if (routeRule.context === 'platform' && activeRole !== 'master_admin') {
       router.replace('/403')
@@ -100,7 +102,10 @@ export function AuthenticatedGuard({ children }: { children: React.ReactNode }) 
     }
   }, [router, pathname, isLoading, isAuthenticated, hasPendingAccessRequest, needsTenantSelection, activeTenant, isMfaRequired, capabilityMap, activeRole])
 
-  if (isLoading || !isAuthenticated || hasPendingAccessRequest || needsTenantSelection || !activeTenant || isMfaRequired) {
+  const routeRule = getRouteCapabilityRule(pathname)
+  const requiresTenantContext = routeRule?.context !== 'platform'
+
+  if (isLoading || !isAuthenticated || hasPendingAccessRequest || needsTenantSelection || (requiresTenantContext && !activeTenant) || isMfaRequired) {
     return <main className="p-8 text-sm text-muted-foreground">Carregando contexto seguro...</main>
   }
 
