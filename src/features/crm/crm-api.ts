@@ -35,6 +35,19 @@ export async function getCrmLeadDetail(leadId: string): Promise<{ data: { lead: 
   return { data: data as { lead: CrmLead; notes: CrmNote[]; history: CrmHistoryEvent[] }, error: null }
 }
 
+export async function getCrmClientDetail(clientId: string): Promise<{ data: { client: CrmLead; notes: CrmNote[]; history: CrmHistoryEvent[] } | null; error: string | null }> {
+  const { data, error } = await supabase.rpc('rpc_crm_get_client_detail', { p_client_id: clientId })
+  if (error) return { data: null, error: 'Nao foi possivel carregar a ficha do cliente.' }
+  return { data: data as { client: CrmLead; notes: CrmNote[]; history: CrmHistoryEvent[] }, error: null }
+}
+
+export async function listEligibleCrmOwners(tenantId: string): Promise<{ data: Array<{ user_id: string; role: string }>; error: string | null }> {
+  const { data, error } = await supabase.rpc('rpc_list_tenant_memberships_secure', { p_tenant_id: tenantId })
+  if (error) return { data: [], error: 'Nao foi possivel listar owners elegiveis.' }
+  const owners = ((data ?? []) as Array<{ user_id: string; status: string; role: string }>).filter((m) => m.status === 'active').map((m) => ({ user_id: m.user_id, role: m.role }))
+  return { data: owners, error: null }
+}
+
 export async function addCrmNote(input: { leadId?: string; clientId?: string; note: string }): Promise<{ error: string | null }> {
   const { error } = await supabase.rpc('rpc_crm_add_note', {
     p_lead_id: input.leadId ?? null,
@@ -49,6 +62,17 @@ export async function moveCrmStage(input: { leadId?: string; clientId?: string; 
     p_lead_id: input.leadId ?? null,
     p_client_id: input.clientId ?? null,
     p_to_stage: input.toStage,
+    p_reason: null,
+  })
+  return { error: error ? 'Nao foi possivel alterar stage.' : null }
+}
+
+export async function moveCrmStageWithReason(input: { leadId?: string; clientId?: string; toStage: CrmStage; reason?: string }): Promise<{ error: string | null }> {
+  const { error } = await supabase.rpc('rpc_crm_move_stage', {
+    p_lead_id: input.leadId ?? null,
+    p_client_id: input.clientId ?? null,
+    p_to_stage: input.toStage,
+    p_reason: input.reason ?? null,
   })
   return { error: error ? 'Nao foi possivel alterar stage.' : null }
 }

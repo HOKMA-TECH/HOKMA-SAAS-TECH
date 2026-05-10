@@ -6,8 +6,9 @@ import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useAuth } from '@/features/auth/auth-context'
 import { useCan } from '@/features/auth/authorization'
 import { tenantQueryKey } from '@/lib/query/tenant-query-key'
-import { addCrmNote, convertLeadToClient, createCrmLead, getCrmLeadDetail, listCrmClients, listCrmLeads, moveCrmStage, reassignLeadOwner } from '@/features/crm/crm-api'
+import { addCrmNote, convertLeadToClient, createCrmLead, getCrmClientDetail, getCrmLeadDetail, listCrmClients, listCrmLeads, listEligibleCrmOwners, moveCrmStageWithReason, reassignLeadOwner } from '@/features/crm/crm-api'
 import type { CrmStage } from '@/features/crm/types'
+import { CrmHistoryTimeline, CrmNotesPanel, CrmSensitiveField, CrmStageBadge } from '@/components/crm/crm-shared-panels'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
@@ -39,8 +40,10 @@ export default function ClientesPage() {
   const [newLeadEmail, setNewLeadEmail] = useState('')
   const [feedback, setFeedback] = useState<string | null>(null)
   const [selectedLeadId, setSelectedLeadId] = useState<string | null>(null)
+  const [selectedClientId, setSelectedClientId] = useState<string | null>(null)
   const [noteText, setNoteText] = useState('')
   const [newOwnerUserId, setNewOwnerUserId] = useState('')
+  const [lostReason, setLostReason] = useState('')
   const { activeTenant, user, activeMembership } = useAuth()
   const queryClient = useQueryClient()
   const canReadLeads = useCan('leads.read')
@@ -82,6 +85,28 @@ export default function ClientesPage() {
     enabled: !!selectedLeadId && !!activeTenant && canReadLeads,
   })
 
+  const clientDetailQuery = useQuery({
+    queryKey: tenantQueryKey(activeTenant, 'crm-client-detail', selectedClientId),
+    queryFn: async () => {
+      if (!selectedClientId) return null
+      const result = await getCrmClientDetail(selectedClientId)
+      if (result.error) throw new Error(result.error)
+      return result.data
+    },
+    enabled: !!selectedClientId && !!activeTenant && canReadLeads,
+  })
+
+  const ownerOptionsQuery = useQuery({
+    queryKey: tenantQueryKey(activeTenant, 'crm-owner-options'),
+    queryFn: async () => {
+      if (!activeTenant) return []
+      const result = await listEligibleCrmOwners(activeTenant)
+      if (result.error) throw new Error(result.error)
+      return result.data
+    },
+    enabled: !!activeTenant && canAssignLeads,
+  })
+
   const onCreateLead = async () => {
     if (!activeTenant || !user || !canCreateLeads || !newLeadName.trim()) return
     setIsCreating(true)
@@ -106,7 +131,11 @@ export default function ClientesPage() {
   }
 
   const onMoveStage = async (leadId: string, stage: CrmStage) => {
-    const result = await moveCrmStage({ leadId, toStage: stage })
+    if (stage === 'perdido' && lostReason.trim().length < 3) {
+      setFeedback('Informe um motivo para marcar como perdido (min. 3 caracteres).')
+      return
+    }
+    const result = await moveCrmStageWithReason({ leadId, toStage: stage, reason: stage === 'perdido' ? lostReason.trim() : undefined })
     if (result.error) {
       setFeedback(result.error)
       return
@@ -129,6 +158,8 @@ export default function ClientesPage() {
   }
 
   const onConvertLead = async (leadId: string) => {
+    const confirmed = window.confirm('Confirmar conversao deste lead em cliente?')
+    if (!confirmed) return
     const result = await convertLeadToClient(leadId)
     if (result.error) return setFeedback(result.error)
     setFeedback('Lead convertido em cliente com sucesso.')
@@ -282,6 +313,7 @@ export default function ClientesPage() {
                   <Button size="sm" variant="outline" onClick={() => setSelectedLeadId(lead.id)}>Ficha</Button>
                   <Button size="sm" variant="outline" onClick={() => void onMoveStage(lead.id, 'em_contato')}>Mover para contato</Button>
                   <Button size="sm" variant="outline" onClick={() => void onMoveStage(lead.id, 'qualificado')}>Qualificar</Button>
+                  <Button size="sm" variant="outline" onClick={() => void onMoveStage(lead.id, 'perdido')}>Marcar perdido</Button>
                   <Button size="sm" variant="outline" onClick={() => void onConvertLead(lead.id)}>Converter cliente</Button>
                 </div>
               </div>
@@ -333,10 +365,37 @@ export default function ClientesPage() {
                   {canAssignLeads ? (
                     <div className="space-y-2">
                       <p className="text-xs font-medium text-muted-foreground">Reatribuir owner</p>
-                      <Input placeholder="Novo owner user id" value={newOwnerUserId} onChange={(e) => setNewOwnerUserId(e.target.value)} />
+                      <select className="h-9 w-full rounded-md border px-3 text-sm" value={newOwnerUserId} onChange={(e) => setNewOwnerUserId(e.target.value)}>
+                        <option value="">Selecione owner elegivel</option>
+                        {(ownerOptionsQuery.data ?? []).map((owner) => (
+                          <option key={owner.user_id} value={owner.user_id}>{owner.user_id.slice(0, 8)} ({owner.role})</option>
+                        ))}
+                      </select>
                       <Button size="sm" variant="outline" onClick={() => void onReassignOwner()}>Reatribuir</Button>
                     </div>
                   ) : null}
+
+                  <div className="space-y-2">
+                    <p className="text-xs font-medium text-muted-foreground">Motivo para perdido</p>
+                    <Input placeholder="Ex.: sem interesse no momento" value={lostReason} onChange={(e) => setLostReason(e.target.value)} />
+                  </div>
+                </div>
+              ) : null}
+            </div>
+
+            <div className="rounded-lg border p-4">
+              {!selectedClientId && (clientsQuery.data ?? [])[0] ? (
+                <Button size="sm" variant="outline" onClick={() => setSelectedClientId((clientsQuery.data ?? [])[0].id)}>Abrir primeira ficha de cliente</Button>
+              ) : null}
+              {clientDetailQuery.data?.client ? (
+                <div className="space-y-3">
+                  <h3 className="text-sm font-semibold">Ficha do cliente</h3>
+                  <CrmStageBadge stage={clientDetailQuery.data.client.stage} />
+                  <CrmSensitiveField label="Nome" value={clientDetailQuery.data.client.full_name} />
+                  <CrmSensitiveField label="Email" value={clientDetailQuery.data.client.email} />
+                  <CrmSensitiveField label="Telefone" value={clientDetailQuery.data.client.phone} />
+                  <CrmNotesPanel notes={clientDetailQuery.data.notes} />
+                  <CrmHistoryTimeline history={clientDetailQuery.data.history} />
                 </div>
               ) : null}
             </div>
