@@ -17,7 +17,9 @@ export function useCan(capability: Capability | Capability[], options: UseCanOpt
   if (context === 'platform' && !isPlatformAdmin) return false
   if (context === 'tenant' && activeMembership?.role === 'master_admin') return false
 
-  const caps = getCapabilitiesForRole(activeMembership?.role)
+  const caps = context === 'platform' && isPlatformAdmin
+    ? getCapabilitiesForRole('master_admin')
+    : getCapabilitiesForRole(activeMembership?.role)
   const required = Array.isArray(capability) ? capability : [capability]
   return mode === 'all' ? required.every((cap) => caps.includes(cap)) : required.some((cap) => caps.includes(cap))
 }
