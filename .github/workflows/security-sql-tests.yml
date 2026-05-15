@@ -28,7 +28,7 @@ jobs:
           psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -f supabase/tests/etapa_3_5_authz_scenarios.sql | tee test-results/sql/etapa_3_5_authz_scenarios.log
 
       - name: Upload SQL test logs
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: security-sql-logs
           path: test-results/sql/*.log
